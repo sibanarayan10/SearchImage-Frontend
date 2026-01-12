@@ -35,7 +35,7 @@ const Navbar = ({ setLogout }) => {
         setNavigate("/sign-in");
       }
     } catch (error) {
-      console.log("error in navbar", error);
+      console.error("error in navbar", error);
     }
   };
   const hideNavbar = ["/sign-up", "/sign-in"];

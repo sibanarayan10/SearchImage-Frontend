@@ -7,7 +7,7 @@ import { LoaderCircle } from "lucide-react";
 
 function Form({ mode }) {
   const [loading, setLoading] = useState(false);
-  const [endpoint, setEndpoint] = useState("api/v1/user/sign-up");
+  const [endpoint, setEndpoint] = useState("auth/user/sign-up");
   const [token, setToken] = useState(null);
   const captchaRef = useRef(null);
 
@@ -35,7 +35,6 @@ function Form({ mode }) {
           headers: {
             "Content-Type": "application/json",
           },
-          withCredentials: true,
           validateStatus: (status) => status > 0,
         }
       );
@@ -44,20 +43,21 @@ function Form({ mode }) {
         setLoading(false);
 
         if (mode == "signup") {
-          navigate("/sign-in");
+          navigate("auth/sign-in");
         } else {
-          console.log(response.data.data.user.email);
           localStorage.setItem(
             "profileImg",
-            response.data.data.user.profileImg
+            response.data?.data?.user?.profileImg || ""
           );
-          localStorage.setItem("user", response.data.data.user.fullname);
+          localStorage.setItem(
+            "user",
+            response?.data?.data?.user?.fullname || ""
+          );
           navigate("/");
         }
       } else if (response.status > 300) {
         setLoading(false);
         const msg = response.data.message;
-        console.log(response.data);
 
         const type = msg.split(",")[0];
         const text = msg.split(",")[1];
@@ -66,16 +66,16 @@ function Form({ mode }) {
     } catch (error) {
       setLoading(false);
 
-      console.log(error);
+      console.error(error);
     }
   };
   const validateValues = () => {
     let newErrors = {};
     if (mode == "signup") {
-      if (!values.fullname.trim()) {
-        newErrors.fullname = "Required";
+      if (!values.name.trim()) {
+        newErrors.name = "Required";
       } else if (!/^[A-Za-z\s]+$/.test(values.fullname)) {
-        newErrors.fullname = "Only letters are allowed";
+        newErrors.name = "Only letters are allowed";
       }
 
       if (!values.email.trim()) {
@@ -84,12 +84,6 @@ function Form({ mode }) {
         !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)
       ) {
         newErrors.email = "Invalid email address";
-      }
-
-      if (!values.phone.trim()) {
-        newErrors.phone = "Required";
-      } else if (!/^\d{10}$/.test(values.phone)) {
-        newErrors.phone = "Phone number should be exactly 10 digits";
       }
 
       if (!values.password.trim()) {
@@ -119,9 +113,8 @@ function Form({ mode }) {
   };
 
   const [values, setValues] = useState({
-    fullname: "",
+    name: "",
     email: "",
-    phone: "",
     password: "",
     confirm_password: "",
   });
@@ -129,10 +122,8 @@ function Form({ mode }) {
   const [error, setError] = useState(values);
 
   const [touched, setTouched] = useState({
-    fullname: false,
+    name: false,
     email: false,
-    phone: false,
-
     password: false,
     confirm_password: "",
   });
@@ -147,9 +138,8 @@ function Form({ mode }) {
     const initialValues =
       mode == "signup"
         ? {
-            fullname: "",
+            name: "",
             email: "",
-            phone: "",
             password: "",
             confirm_password: "",
           }
@@ -160,17 +150,16 @@ function Form({ mode }) {
     setValues(initialValues);
     setError(initialValues);
     setTouched((prev) => ({
-      fullname: false,
+      name: false,
       email: false,
-      phone: false,
 
       password: false,
       confirm_password: "",
     }));
     if (mode === "signup") {
-      setEndpoint("api/v1/user/sign-up");
+      setEndpoint("auth/user/sign-up");
     } else {
-      setEndpoint("api/v1/user/sign-in");
+      setEndpoint("auth/user/sign-in");
     }
   }, [mode]);
 

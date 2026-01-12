@@ -74,7 +74,6 @@ const Gallery = ({
         return;
       }
 
-      console.log({ backendApi, data: res.data });
       const newImgs = res.data.data;
 
       if (newImgs.length === 0) {
@@ -156,7 +155,7 @@ const Gallery = ({
     );
     setClientLike(!clientLike);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/image/action/like/${imgId}`,
+      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleLike`,
       {},
       {
         withCredentials: true,
@@ -170,7 +169,6 @@ const Gallery = ({
       toast.warn("False like!! Sign-in to continue");
       return;
     }
-    console.log(response);
   };
   const toggleSave = async (e, imgId) => {
     e.stopPropagation();
@@ -181,7 +179,7 @@ const Gallery = ({
     );
     setClientSave(!clientSave);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/image/action/save/${imgId}`,
+      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleSave`,
       {},
       {
         withCredentials: true,
@@ -196,7 +194,6 @@ const Gallery = ({
 
       return;
     }
-    console.log(response);
   };
   return (
     <div className="px-8 bg-white dark:bg-[#111111] min-h-screen flex flex-col justify-start items-center pt-16 pb-8 transition-all duration-500 relative ">
@@ -420,10 +417,9 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
   const [totalLike, setTotalLike] = useState(0);
 
   const navigate = useNavigate();
-  console.log(imgId);
   const getImageDetail = async () => {
     const response = await axios.get(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/image/detail/${imgId}`,
+      `${import.meta.env.VITE_BACKEND_URL}/image/detail/${imgId}`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -436,7 +432,6 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
       return;
     }
     const details = response.data.data;
-    console.log(details);
 
     setClientLike(details.isLiked);
     setClientSave(details.isSaved);
@@ -452,7 +447,7 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
   const toggleFollow = async () => {
     setClientFollow(!clientFollow);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/follow/${ownerId}`,
+      `${import.meta.env.VITE_BACKEND_URL}/user/${ownerId}/toggleFollow`,
       {},
       {
         withCredentials: true,
@@ -466,12 +461,11 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
       toast.warn("Sign-in to continue");
       return;
     }
-    console.log(response);
   };
   const toggleLike = async () => {
     setClientLike(!clientLike);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/image/action/like/${imgId}`,
+      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleLike`,
       {},
       {
         withCredentials: true,
@@ -486,12 +480,11 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
 
       return;
     }
-    console.log(response);
   };
   const toggleSave = async () => {
     setClientSave(!clientSave);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/image/action/save/${imgId}`,
+      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleSave`,
       {},
       {
         withCredentials: true,
@@ -506,14 +499,11 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
 
       return;
     }
-    console.log(response);
   };
   const handleClick = async () => {
     try {
       const response = await axios.post(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/v1/user/uploads/image/${imgId}`,
+        `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}`,
         {},
         {
           headers: {
@@ -524,9 +514,7 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
         }
       );
       toast.success("Image deleted successfully");
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   };
   return (
     <div className="flex items-center p-4 relative bg-white dark:bg-[#111111] rounded-xl shadow-xl shadow-black/70">

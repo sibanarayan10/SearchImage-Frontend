@@ -138,11 +138,10 @@ const AfterUpload = ({ file, setFile }) => {
       formData.append(`metadata[${index}][desc]`, item.desc);
       formData.append(`metadata[${index}][tags]`, JSON.stringify(item.tag));
     });
-    console.log(formData);
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/addImages`,
+        `${import.meta.env.VITE_BACKEND_URL}/user/addImages`,
         formData,
         {
           headers: {
@@ -157,7 +156,6 @@ const AfterUpload = ({ file, setFile }) => {
       }
       toast.success("Image uploaded successfully");
       navigate("/");
-      console.log("Success:", res.data);
     } catch (err) {
       console.error("Upload failed", err);
     }
@@ -178,9 +176,6 @@ const AfterUpload = ({ file, setFile }) => {
     }
   };
 
-  useEffect(() => {
-    console.log(uploadFile);
-  });
   // this need to be handled
   const handleRemove = (i, j) => {
     const tag = uploadFile[i]["tag"];

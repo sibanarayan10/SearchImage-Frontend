@@ -12,7 +12,6 @@ export const HomePage = ({ backendApi }) => {
   useEffect(() => {
     setSearchParams(search);
   }, [search]);
-  console.log(search);
   return (
     <>
       <SearchComponent />

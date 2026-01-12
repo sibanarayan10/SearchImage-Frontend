@@ -15,14 +15,13 @@ const Dashboard = () => {
   const getUserDetail = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/profile`,
+        `${import.meta.env.VITE_BACKEND_URL}/user/details`,
         {
           headers: { "Content-Type": "application/json" },
           withCredentials: true,
           validateStatus: (status) => status > 0,
         }
       );
-      console.log("User profile response:", response);
       setUserDetail(response.data.data);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
@@ -36,7 +35,7 @@ const Dashboard = () => {
   const handleLogout = async () => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/log-out`,
+        `${import.meta.env.VITE_BACKEND_URL}/user/log-out`,
         {},
         {
           headers: { "Content-Type": "application/json" },
@@ -181,9 +180,7 @@ const Dashboard = () => {
             )}
             <div className={`${hasUploadImages ? "w-full" : "hidden"}`}>
               <Gallery
-                backendApi={`${
-                  import.meta.env.VITE_BACKEND_URL
-                }/api/v1/user/uploads?`}
+                backendApi={`${import.meta.env.VITE_BACKEND_URL}/user/uploads?`}
                 setHasData={(exist) => setHasUploadImages(exist)}
                 ofUser={true}
               />
@@ -200,9 +197,7 @@ const Dashboard = () => {
           >
             <div className={`${hasSavedImages ? "w-full" : "hidden"}`}>
               <Gallery
-                backendApi={`${
-                  import.meta.env.VITE_BACKEND_URL
-                }/api/v1/user/saved?`}
+                backendApi={`${import.meta.env.VITE_BACKEND_URL}/user/saved?`}
                 setHasData={(exist) => setHasSavedImages(exist)}
               />
             </div>
