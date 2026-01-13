@@ -127,18 +127,21 @@ export const BeforeUpload = () => {
 };
 
 const AfterUpload = ({ file, setFile }) => {
-  const [uploadFile, setUploadFile] = useState([]);
-  const [inputVal, setInputVal] = useState("");
   const navigate = useNavigate();
+  const [values, setValues] = useState([
+    { file: file[0], title: "", description: "", tags: [] },
+  ]);
+  const [tag, setTag] = useState("");
+
   const handleSubmit = async () => {
     const formData = new FormData();
-    uploadFile.forEach((item, index) => {
-      formData.append("images", item.file); // all images under same field name
-      formData.append(`metadata[${index}][title]`, item.title);
-      formData.append(`metadata[${index}][desc]`, item.desc);
-      formData.append(`metadata[${index}][tags]`, JSON.stringify(item.tag));
+
+    const { files, metaData } = modifiedValue(values);
+    files.forEach((item, index) => {
+      formData.append("images", item);
     });
 
+    formData.append("metadata", JSON.stringify(metaData));
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/user/addImages`,
@@ -161,47 +164,45 @@ const AfterUpload = ({ file, setFile }) => {
     }
   };
 
-  const handleKeyDown = (e, index) => {
-    const tagz = uploadFile[index]["tag"];
-    if (e.target.value.trim().length <= 5) {
+  const handleKeyDown = (index) => {
+    if (tag.trim().length == 0) {
+      return;
+    }
+    const prevTags = values[index]?.tags || [];
+    const newTags = [...prevTags, tag];
+    setFieldValue("tags", newTags, index);
+    setTag("");
+  };
+
+  const removeTag = (i, j) => {
+    const prevTags = values[i].tags || [];
+    if (prevTags.length == 0) {
+      return;
+    }
+    const newArr = prevTags.filter((t, idx) => idx !== j);
+    setFieldValue("tags", newArr, i);
+  };
+
+  const modifiedValue = () => {
+    const files = values.map((v) => v.file);
+    const metaData = values.map((v) => ({
+      title: v.title,
+      description: v.description,
+      tags: v.tags,
+    }));
+    return { files: files, metaData: metaData };
+  };
+  const setFieldValue = (name, newValue, index) => {
+    const prevValue = values;
+    const fieldValue = Array.isArray(newValue) ? newValue : newValue.trim();
+    if (fieldValue.length == 0) {
       return;
     }
 
-    if (e.key === " " && inputVal.trim() !== "") {
-      e.preventDefault();
-      if (!tagz.includes(inputVal.trim())) {
-        tagz.push(inputVal);
-      }
-      setInputVal("");
-    }
-  };
-
-  // this need to be handled
-  const handleRemove = (i, j) => {
-    const tag = uploadFile[i]["tag"];
-    const updatedTag = tag.filter((item, index) => index !== j);
-  };
-
-  useEffect(() => {
-    if (file.length <= uploadFile.length) {
-      return;
-    }
-    const latestUploadedFile = file[file.length - 1];
-    setUploadFile((prev) => [
-      ...prev,
-      {
-        file: latestUploadedFile,
-        title: "",
-        desc: "",
-        tag: [],
-      },
-    ]);
-  }, [file]);
-
-  const handleMetadataChange = (index, field, value) => {
-    const updated = [...uploadFile];
-    updated[index][field] = value;
-    setUploadFile(updated);
+    const nv = prevValue.map((p, idx) =>
+      idx == index ? { ...p, [name]: newValue } : p
+    );
+    setValues(nv);
   };
 
   return (
@@ -228,9 +229,13 @@ const AfterUpload = ({ file, setFile }) => {
             className="hidden"
             multiple
             onChange={(e) => {
-              const files = e.target.files[0];
-              if (files) {
-                setFile((prev) => [...prev, files]);
+              const file = e.target.files[0];
+              if (file) {
+                setValues((prev) => [
+                  ...prev,
+                  { file: file, title: "", description: "", tags: [] },
+                ]);
+                setFile((prev) => [...prev, file]);
               }
             }}
           />
@@ -256,83 +261,92 @@ const AfterUpload = ({ file, setFile }) => {
           </label>
         </div>
         <div className="scroll-smooth scrollBar overflow-y-auto w-11/12 flex flex-col items-center p-2 max-h-[420px] gap-y-6">
-          {file.map((item, i) => (
-            <div
-              className="flex  items-center gap-x-8 w-full justify-center"
-              key={i}
-            >
-              <div className="flex max-[800px]:flex-col items-center  w-4/5 min-h-[400px] bg-gray-200 dark:bg-zinc-800 rounded-lg py-6">
-                <div className="flex items-center justify-center w-1/2 max-[800px]:w-full">
-                  <img
-                    src={URL.createObjectURL(item)}
-                    alt=""
-                    className="w-4/5 object-scale-down h-4/5 rounded-lg"
-                  />
-                </div>
-                <form
-                  action=""
-                  className="flex flex-col gap-y-4 w-1/2 p-2 items-center max-[800px]:w-full"
-                >
-                  <input
-                    type="text"
-                    placeholder="Enter your title here"
-                    className="p-2 rounded-lg text-black dark:text-white dark:bg-white/10 outline-none focus:outline-none focus:ring-2 focus:ring-primary w-4/5 transition-all duration-300"
-                    maxLength={20}
-                    onChange={(e) =>
-                      handleMetadataChange(i, "title", e.target.value)
-                    }
-                  />
-                  {/* this part need some time */}
-                  <input
-                    type="text"
-                    onChange={(e) => {
-                      setInputVal(e.target.value);
-                    }}
-                    placeholder="Tags for better search"
-                    className="p-2 rounded-lg text-black dark:text-white dark:bg-white/10 outline-none focus:outline-none focus:ring-2 focus:ring-primary w-4/5 transition-all duration-300"
-                    onKeyDown={(e) => handleKeyDown(e, i)}
-                  />
-                  <div className="w-full flex items-center flex-wrap gap-2 px-10">
-                    {uploadFile[i] &&
-                      uploadFile[i]["tag"].map((item, j) => (
-                        <div
-                          className="bg-green-100/20 text-green-500 border border-green-700 max-w-[100px] truncate relative rounded-full pl-2 pr-6 p-2 flex items-center"
-                          key={j}
-                        >
-                          <p className="text-sm text-start truncate">{item}</p>
-                          <X
-                            size={16}
-                            className="text-green-700 absolute top-3 right-1"
-                            onClick={() => handleRemove(i, j)}
-                          />
-                        </div>
-                      ))}
+          {values.length > 0 &&
+            values.map((item, i) => (
+              <div
+                className="flex  items-center gap-x-8 w-full justify-center"
+                key={i}
+              >
+                <div className="flex max-[800px]:flex-col items-center  w-4/5 min-h-[400px] bg-gray-200 dark:bg-zinc-800 rounded-lg py-6">
+                  <div className="flex items-center justify-center w-1/2 max-[800px]:w-full">
+                    <img
+                      src={URL.createObjectURL(item.file)}
+                      alt=""
+                      className="w-4/5 object-scale-down h-4/5 rounded-lg"
+                    />
                   </div>
-                  <textarea
-                    type="text"
-                    rows="6"
-                    onChange={(e) =>
-                      handleMetadataChange(i, "desc", e.target.value)
-                    }
-                    maxLength={100}
-                    placeholder="Some beautiful lines for this image"
-                    className="p-2 rounded-lg text-black dark:text-white dark:bg-white/10 outline-none focus:outline-none focus:ring-2 focus:ring-primary w-4/5 transition-all duration-300 text-sm"
+                  <form
+                    action=""
+                    className="flex flex-col gap-y-4 w-1/2 p-2 items-center max-[800px]:w-full"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Enter your title here"
+                      className="p-2 rounded-lg text-black dark:text-white dark:bg-white/10 outline-none focus:outline-none focus:ring-2 focus:ring-primary w-4/5 transition-all duration-300"
+                      maxLength={20}
+                      onChange={(e) => {
+                        const nt = e.target.value;
+                        setFieldValue("title", nt, i);
+                      }}
+                    />
+                    {/* this part need some time */}
+                    <input
+                      type="text"
+                      onChange={(e) => {
+                        setTag(e.target.value);
+                      }}
+                      placeholder="Tags for better search"
+                      className="p-2 rounded-lg text-black dark:text-white dark:bg-white/10 outline-none focus:outline-none focus:ring-2 focus:ring-primary w-4/5 transition-all duration-300"
+                      onKeyDown={(e) => {
+                        if (e.key == " " || e.code == "Space") {
+                          handleKeyDown(i);
+                        }
+                      }}
+                      value={tag}
+                    />
+                    <div className="w-full flex items-center flex-wrap gap-2 px-10">
+                      {values[i] &&
+                        values[i]["tags"].map((item, j) => (
+                          <div
+                            className="bg-green-100/20 text-green-500 border border-green-700 max-w-[100px] truncate relative rounded-full pl-2 pr-6 p-2 flex items-center"
+                            key={j}
+                          >
+                            <p className="text-sm text-start truncate">
+                              {item}
+                            </p>
+                            <X
+                              size={16}
+                              className="text-green-700 absolute top-3 right-1"
+                              onClick={() => removeTag(i, j)}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                    <textarea
+                      type="text"
+                      rows="6"
+                      onChange={(e) => {
+                        setFieldValue("description", e.target.value, i);
+                      }}
+                      maxLength={100}
+                      placeholder="Some beautiful lines for this image"
+                      className="p-2 rounded-lg text-black dark:text-white dark:bg-white/10 outline-none focus:outline-none focus:ring-2 focus:ring-primary w-4/5 transition-all duration-300 text-sm"
+                    />
+                  </form>
+                </div>
+                <button title="Delete">
+                  <Trash2
+                    className="text-gray-600 dark:text-white rounded-full h-11 w-11 bg-gray-200 dark:bg-zinc-800 p-3 cursor-pointer"
+                    onClick={() => {
+                      const updatedFiles = file?.filter((f, idx) => idx !== i);
+                      setFile(updatedFiles);
+                      const nv = values.filter((pv, index) => index !== i);
+                      setValues(nv);
+                    }}
                   />
-                </form>
+                </button>
               </div>
-              <button title="Delete">
-                <Trash2
-                  className="text-gray-600 dark:text-white rounded-full h-11 w-11 bg-gray-200 dark:bg-zinc-800 p-3 cursor-pointer"
-                  onClick={() => {
-                    const newFile = file.filter((itm) => itm !== item);
-                    const toBeUpload = uploadFile.filter((item, j) => i !== j);
-                    setUploadFile(toBeUpload);
-                    setFile(newFile);
-                  }}
-                />
-              </button>
-            </div>
-          ))}
+            ))}
         </div>
         <div className="sticky bottom-0 z-100  min-h-[80px]  bg-gray-200 dark:bg-zinc-800  min-w-full flex items-center justify-between p-4 rounded ">
           <p className="text-zinc-500 dark:text-white text-base">
