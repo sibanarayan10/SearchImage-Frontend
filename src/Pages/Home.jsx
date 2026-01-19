@@ -19,7 +19,7 @@ export const HomePage = ({ backendApi }) => {
         key={searchParams}
         search={search}
         backendApi={
-          search ? `${backendApi}?search=${searchParams}&` : `${backendApi}?`
+          search ? `${backendApi}?q=${searchParams}&` : `${backendApi}?`
         }
         DeleteAndEdit={false}
       />

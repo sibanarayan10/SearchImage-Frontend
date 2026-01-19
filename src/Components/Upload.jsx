@@ -140,17 +140,16 @@ const AfterUpload = ({ file, setFile }) => {
     files.forEach((item, index) => {
       formData.append("images", item);
     });
-
     formData.append("metadata", JSON.stringify(metaData));
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/user/addImages`,
         formData,
         {
+          withCredentials: true,
           headers: {
             "Content-Type": "multipart/form-data",
           },
-          withCredentials: true,
           validateStatus: (status) => status > 0,
         }
       );

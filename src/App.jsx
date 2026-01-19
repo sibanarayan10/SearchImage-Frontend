@@ -32,9 +32,7 @@ const App = () => {
             element={
               <HomePage
                 key="search"
-                backendApi={`${
-                  import.meta.env.VITE_BACKEND_URL
-                }/api/v1/image/search`}
+                backendApi={`${import.meta.env.VITE_BACKEND_URL}/images`}
               />
             }
           />
@@ -44,7 +42,7 @@ const App = () => {
             element={
               <HomePage
                 key="home-root"
-                backendApi={`${import.meta.env.VITE_BACKEND_URL}/api/v1/image`}
+                backendApi={`${import.meta.env.VITE_BACKEND_URL}/images`}
               />
             }
           />

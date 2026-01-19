@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import ThemeToggle from "./ThemeToggle";
 import { User, CircleUser, Album } from "lucide-react";
-import { TableOfContents } from "lucide-react";
 import { Context } from "../Context/globalContext";
 
 const Navbar = ({ setLogout }) => {
@@ -16,6 +15,7 @@ const Navbar = ({ setLogout }) => {
   const navigateTo = useNavigate();
 
   const handleUserAuth = async () => {
+    debugger;
     if (!userAuth) {
       return;
     }
@@ -88,7 +88,7 @@ const Navbar = ({ setLogout }) => {
                   ${localStorage.getItem("user") ? "hidden" : "flex"}
                justify-center items-center`}
             >
-              <Link to="/sign-in">
+              {/* <Link to="/sign-in">
                 <button
                   type="button"
                   className="flex p-1.5 text-center dark:text-white rounded-full transition-all duration-300 hover:bg-black/15 dark:hover:bg-white/10"
@@ -98,7 +98,7 @@ const Navbar = ({ setLogout }) => {
                     <User size={30} />
                   </span>
                 </button>
-              </Link>
+              </Link> */}
             </div>
 
             <Link
@@ -114,19 +114,17 @@ const Navbar = ({ setLogout }) => {
             <button
               title="Profile"
               onClick={() => navigateTo("/dashboard")}
-              className={`${
-                localStorage.getItem("user") ? "flex" : "hidden"
-              } h-10 w-10 rounded-full overflow-hidden`}
+              className={` h-10 w-10 rounded-full overflow-hidden`}
             >
-              {profileImg ? (
+              {/* {profileImg ? (
                 <img
                   src={`https://res.cloudinary.com/dewv14vkx/image/upload/v1/${profileImg}`}
                   alt="profile"
                   className="h-full w-full object-cover"
                 />
-              ) : (
-                <CircleUser className="h-full w-full dark:text-white" />
-              )}
+              ) : ( */}
+              <CircleUser className="h-full w-full dark:text-white" />
+              {/* )} */}
             </button>
 
             <ThemeToggle />

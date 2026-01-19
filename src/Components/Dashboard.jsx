@@ -10,7 +10,8 @@ const Dashboard = () => {
   const [userDetail, setUserDetail] = useState({});
   const [hasSavedImages, setHasSavedImages] = useState(false);
   const [hasUploadImages, setHasUploadImages] = useState(false);
-
+  const [userUploads, setUserUploads] = useState([]);
+  const [likedImage, setLikedImage] = useState([]);
   const tabs = ["My Uploads", "Saved"];
   const getUserDetail = async () => {
     try {
@@ -22,7 +23,7 @@ const Dashboard = () => {
           validateStatus: (status) => status > 0,
         }
       );
-      setUserDetail(response.data.data);
+      setUserDetail(response.data);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
     }
@@ -32,6 +33,50 @@ const Dashboard = () => {
     getUserDetail();
   }, []);
 
+  const loadMoreImages = async () => {
+    try {
+      const res = await axios.get(
+        `${backendApi}page=${0}&size=${10}&userSpecific=${true}`,
+        {
+          withCredentials: true,
+          validateStatus: (status) => status > 0,
+        }
+      );
+      if (res.status == 401) {
+        toast.warn("Sign-in to continue");
+        return;
+      }
+
+      const data = res.data.content;
+      const newImgs = data.map((i) => ({
+        ...i,
+        _id: i.imageId,
+        cloudinary_publicId: i.imageUrl,
+      }));
+
+      if (newImgs.length === 0) {
+        setHasUploadImages(false);
+      } else {
+        setHasUploadImages(true);
+        setUserUploads((prev) => [...prev, ...newImgs]);
+        // setSkip((prev) => prev + PAGE_LIMIT);
+        setLikedImages((prev) => [
+          ...prev,
+          ...newImgs
+            .filter((img) => img.likedByCurrentUser)
+            .map((img) => img._id),
+        ]);
+      }
+    } catch (err) {
+      console.error("Error fetching images:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (userUploads.length == 0) {
+      loadMoreImages();
+    }
+  }, [activeTab]);
   const handleLogout = async () => {
     try {
       const response = await axios.post(
@@ -59,9 +104,9 @@ const Dashboard = () => {
     <div className="min-h-screen bg-white dark:bg-[#111111] text-center px-6 py-28">
       <div className="flex flex-col items-center gap-6">
         {/* Profile Image */}
-        {userDetail.profileImg ? (
+        {userDetail.imgUrl ? (
           <img
-            src={`https://res.cloudinary.com/dewv14vkx/image/upload/v1/${userDetail.profileImg}`}
+            src={`https://res.cloudinary.com/dewv14vkx/image/upload/v1/${userDetail.imgUrl}`}
             alt="Profile Image"
             className="w-28 h-28 rounded-full object-cover border-4 dark:border-white"
           />
@@ -85,7 +130,7 @@ const Dashboard = () => {
 
           {/* Name */}
           <h1 className="text-5xl font-medium dark:text-white">
-            {userDetail.fullname}
+            {userDetail.name}
           </h1>
 
           {/* Email */}
@@ -98,13 +143,13 @@ const Dashboard = () => {
           <button className="px-5 py-3 rounded-full transition-all duration-300 font-medium dark:text-white hover:bg-gray-200 dark:hover:bg-white/5 hover:tracking-wide">
             Following
             <span className="ml-2 text-gray-400">
-              {userDetail.totalFollowing || 0}
+              {userDetail.followingCount || 0}
             </span>
           </button>
           <button className="px-5 py-3 rounded-full transition-all duration-300 font-medium dark:text-white hover:bg-gray-200 dark:hover:bg-white/5 hover:tracking-wide">
             Followers
             <span className="ml-2 text-gray-400">
-              {userDetail.totalFollowers || 0}
+              {userDetail.followerCount || 0}
             </span>
           </button>
         </div>
@@ -143,7 +188,7 @@ const Dashboard = () => {
             {`My Uploads`}{" "}
             {activeTab == "My Uploads" && (
               <span className="text-gray-400">
-                {userDetail.totalUploadsCount || 0}
+                {userDetail?.totalUploadsCount || 0}
               </span>
             )}
           </button>
@@ -158,7 +203,7 @@ const Dashboard = () => {
             {`Saved`}{" "}
             {activeTab == "Saved" && (
               <span className="text-gray-400">
-                {userDetail.totalSavedImage || 0}
+                {userDetail?.totalSavedImage || 0}
               </span>
             )}
           </button>
@@ -180,7 +225,7 @@ const Dashboard = () => {
             )}
             <div className={`${hasUploadImages ? "w-full" : "hidden"}`}>
               <Gallery
-                backendApi={`${import.meta.env.VITE_BACKEND_URL}/user/uploads?`}
+                backendApi={`${import.meta.env.VITE_BACKEND_URL}/images?`}
                 setHasData={(exist) => setHasUploadImages(exist)}
                 ofUser={true}
               />

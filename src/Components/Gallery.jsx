@@ -11,7 +11,7 @@ const Gallery = ({
   DeleteAndEdit,
   search,
   setHasData = () => {},
-  ofUser,
+  ofUser = false,
 }) => {
   const [editFormId, setEditFormId] = useState(null);
   const [editFormData, setEditFormData] = useState({ title: "", desc: "" });
@@ -63,7 +63,7 @@ const Gallery = ({
     setLoading(true);
     try {
       const res = await axios.get(
-        `${backendApi}skip=${skip}&limit=${PAGE_LIMIT}`,
+        `${backendApi}page=${skip}&size=${PAGE_LIMIT}&userSpecific=${ofUser}`,
         {
           withCredentials: true,
           validateStatus: (status) => status > 0,
@@ -74,7 +74,12 @@ const Gallery = ({
         return;
       }
 
-      const newImgs = res.data.data;
+      const data = res.data.content;
+      const newImgs = data.map((i) => ({
+        ...i,
+        _id: i.imageId,
+        cloudinary_publicId: i.imageUrl,
+      }));
 
       if (newImgs.length === 0) {
         setHasMore(false);
@@ -89,7 +94,9 @@ const Gallery = ({
 
         setLikedImages((prev) => [
           ...prev,
-          ...newImgs.filter((img) => img.isLiked).map((img) => img._id),
+          ...newImgs
+            .filter((img) => img.likedByCurrentUser)
+            .map((img) => img._id),
         ]);
       }
     } catch (err) {
@@ -156,9 +163,9 @@ const Gallery = ({
     setClientLike(!clientLike);
     const response = await axios.post(
       `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleLike`,
-      {},
+      undefined,
       {
-        withCredentials: true,
+        // withCredentials: true,
         headers: {
           "Content-Type": "application/json",
         },
@@ -222,6 +229,7 @@ const Gallery = ({
           <>
             <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
               {images.map((dataItem, index) => {
+                debugger;
                 const isLast = index === images.length - 1;
                 return (
                   <div
@@ -232,12 +240,14 @@ const Gallery = ({
                       setImgMetadata({
                         url: dataItem.cloudinary_publicId,
                         imgId: dataItem._id,
+                        totalLikes: dataItem.totalLikes,
+                        likedByCurrentUser: dataItem.likedByCurrentUser,
                       });
                     }}
                     ref={isLast ? lastImageRef : null}
                   >
                     <img
-                      src={`https://res.cloudinary.com/dewv14vkx/image/upload/v1/${dataItem.cloudinary_publicId}`}
+                      src={`${dataItem.cloudinary_publicId}`}
                       alt="Cloudinary asset"
                       className="h-full w-full mb-4 rounded-lg bg-black/10 dark:bg-white transition-transform duration-300"
                     />
@@ -247,7 +257,7 @@ const Gallery = ({
                         title="Save"
                         className={`cursor-pointer rounded-lg transition-all duration-300 ${
                           savedImages.includes(dataItem._id)
-                            ? likedImages.includes(dataItem._id)
+                            ? dataItem?.likedByCurrentUser
                               ? "opacity-100 translate-x-0"
                               : "opacity-100 translate-x-12 group-hover:translate-x-0"
                             : "opacity-0 translate-x-3 group-hover:opacity-100 group-hover:translate-x-0"
@@ -288,7 +298,7 @@ const Gallery = ({
                       className="bg-primary text-white rounded-lg shadow hover:bg-secondary transition duration-300 absolute bottom-4 right-4 group-hover:opacity-100 opacity-0 z-50 translate-y-3 group-hover:translate-y-0"
                     >
                       <a
-                        href={`https://res.cloudinary.com/dewv14vkx/image/upload/fl_attachment/v1/${dataItem.cloudinary_publicId}`}
+                        href={`${dataItem.cloudinary_publicId}`}
                         download={`item1`}
                       >
                         <ArrowDownToLine size={42} className="p-2.5" />
@@ -408,41 +418,48 @@ const Gallery = ({
 
 export default Gallery;
 
-const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
+const ZoomedImage = ({
+  url,
+  setVisible,
+  totalLikes,
+  imgId,
+  ofUser = true,
+  likedByCurrentUser,
+}) => {
   const [clientLike, setClientLike] = useState(false);
   const [clientSave, setClientSave] = useState(false);
   const [clientFollow, setClientFollow] = useState(false);
   const [ownerId, setOwnerId] = useState("");
   const [uploadedBy, setUploadedBy] = useState("");
-  const [totalLike, setTotalLike] = useState(0);
+  const [totalLike, setTotalLike] = useState(totalLikes);
 
   const navigate = useNavigate();
-  const getImageDetail = async () => {
-    const response = await axios.get(
-      `${import.meta.env.VITE_BACKEND_URL}/image/detail/${imgId}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        withCredentials: true,
-      }
-    );
-    if (response.status == 401) {
-      toast.warn("Sign-in to continue");
-      return;
-    }
-    const details = response.data.data;
+  // const getImageDetail = async () => {
+  //   const response = await axios.get(
+  //     `${import.meta.env.VITE_BACKEND_URL}/image/detail/${imgId}`,
+  //     {
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       withCredentials: true,
+  //     }
+  //   );
+  //   if (response.status == 401) {
+  //     toast.warn("Sign-in to continue");
+  //     return;
+  //   }
+  //   const details = response.data.data;
 
-    setClientLike(details.isLiked);
-    setClientSave(details.isSaved);
-    setClientFollow(details.isFollowing);
-    setOwnerId(details.ownerId);
-    setUploadedBy(details.uploadedBy);
-    setTotalLike(details.totalLike);
-  };
-  useEffect(() => {
-    getImageDetail();
-  }, []);
+  //   setClientLike(details.isLiked);
+  //   setClientSave(details.isSaved);
+  //   setClientFollow(details.isFollowing);
+  //   setOwnerId(details.ownerId);
+  //   setUploadedBy(details.uploadedBy);
+  //   setTotalLike(details.totalLike);
+  // };
+  // useEffect(() => {
+  //   getImageDetail();
+  // }, []);
 
   const toggleFollow = async () => {
     setClientFollow(!clientFollow);
@@ -564,11 +581,11 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
                 size={24}
                 className={`transition-all duration-200
                 ${
-                  clientLike
+                  likedByCurrentUser
                     ? "fill-pink-500"
                     : "fill-transparent text-black/70 dark:text-white"
                 }`}
-                strokeWidth={clientLike ? 0 : 2}
+                strokeWidth={likedByCurrentUser ? 0 : 2}
               />
 
               <p className="font-medium dark:text-white flex gap-1">
@@ -579,7 +596,7 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
             <div className="w-max flex items-center justify-center space-x-4 px-4 py-3 rounded-lg bg-primary hover:bg-secondary cursor-pointer transition-all duration-300">
               <a
                 className="font-medium text-white flex gap-3"
-                href={`https://res.cloudinary.com/dewv14vkx/image/upload/fl_attachment/v1/${url}`}
+                href={`${url}`}
                 download={`${url}`}
               >
                 <span className="max-md:hidden">Free Download</span>
@@ -590,7 +607,7 @@ const ZoomedImage = ({ url, setVisible, imgId, ofUser }) => {
         </div>
         <div className="w-4/5  flex items-center justify-center">
           <img
-            src={`https://res.cloudinary.com/dewv14vkx/image/upload/v1/${url}`}
+            src={`${url}`}
             alt=""
             className="w-full  max-h-[600px] object-contain"
           />
