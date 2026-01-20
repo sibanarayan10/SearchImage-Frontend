@@ -229,7 +229,6 @@ const Gallery = ({
           <>
             <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
               {images.map((dataItem, index) => {
-                debugger;
                 const isLast = index === images.length - 1;
                 return (
                   <div
@@ -242,6 +241,11 @@ const Gallery = ({
                         imgId: dataItem._id,
                         totalLikes: dataItem.totalLikes,
                         likedByCurrentUser: dataItem.likedByCurrentUser,
+                        uploaderData: {
+                          id: dataItem.uploadedBy,
+                          name: dataItem.uploadedByUserName,
+                        },
+                        isFollowing: dataItem.following,
                       });
                     }}
                     ref={isLast ? lastImageRef : null}
@@ -419,47 +423,23 @@ const Gallery = ({
 export default Gallery;
 
 const ZoomedImage = ({
+  uploaderData,
   url,
   setVisible,
   totalLikes,
   imgId,
   ofUser = true,
   likedByCurrentUser,
+  isFollowing,
 }) => {
   const [clientLike, setClientLike] = useState(false);
   const [clientSave, setClientSave] = useState(false);
-  const [clientFollow, setClientFollow] = useState(false);
-  const [ownerId, setOwnerId] = useState("");
-  const [uploadedBy, setUploadedBy] = useState("");
+  const [clientFollow, setClientFollow] = useState(isFollowing);
+  const [ownerId, setOwnerId] = useState(uploaderData.id);
+  const [uploadedBy, setUploadedBy] = useState(uploaderData.name);
   const [totalLike, setTotalLike] = useState(totalLikes);
 
   const navigate = useNavigate();
-  // const getImageDetail = async () => {
-  //   const response = await axios.get(
-  //     `${import.meta.env.VITE_BACKEND_URL}/image/detail/${imgId}`,
-  //     {
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       withCredentials: true,
-  //     }
-  //   );
-  //   if (response.status == 401) {
-  //     toast.warn("Sign-in to continue");
-  //     return;
-  //   }
-  //   const details = response.data.data;
-
-  //   setClientLike(details.isLiked);
-  //   setClientSave(details.isSaved);
-  //   setClientFollow(details.isFollowing);
-  //   setOwnerId(details.ownerId);
-  //   setUploadedBy(details.uploadedBy);
-  //   setTotalLike(details.totalLike);
-  // };
-  // useEffect(() => {
-  //   getImageDetail();
-  // }, []);
 
   const toggleFollow = async () => {
     setClientFollow(!clientFollow);

@@ -45,14 +45,8 @@ function Form({ mode }) {
         if (mode == "signup") {
           navigate("auth/sign-in");
         } else {
-          localStorage.setItem(
-            "profileImg",
-            response.data?.data?.user?.profileImg || ""
-          );
-          localStorage.setItem(
-            "user",
-            response?.data?.data?.user?.fullname || ""
-          );
+          localStorage.setItem("profileImg", response.data?.user?.imgUrl || "");
+          localStorage.setItem("user", response?.data?.user?.name || "");
           navigate("/");
         }
       } else if (response.status > 300) {
