@@ -5,6 +5,7 @@ import axios from "axios";
 import { X, ArrowDownToLine, Heart, Bookmark, Trash2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { ImageEngagement } from "../lib/utils";
 
 const Gallery = ({
   backendApi,
@@ -89,7 +90,9 @@ const Gallery = ({
         setSkip((prev) => prev + PAGE_LIMIT);
         setSavedImages((prev) => [
           ...prev,
-          ...newImgs.filter((img) => img.isSaved).map((img) => img._id),
+          ...newImgs
+            .filter((img) => img.savedByCurrentUser)
+            .map((img) => img._id),
         ]);
 
         setLikedImages((prev) => [
@@ -153,6 +156,7 @@ const Gallery = ({
       console.error("Error updating image:", error);
     }
   };
+
   const toggleLike = async (e, imgId) => {
     e.stopPropagation();
     setLikedImages((prev) =>
@@ -162,7 +166,9 @@ const Gallery = ({
     );
     setClientLike(!clientLike);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleLike`,
+      `${
+        import.meta.env.VITE_BACKEND_URL
+      }/images/${imgId}/engagements?type=LIKE`,
       undefined,
       {
         // withCredentials: true,
@@ -186,7 +192,9 @@ const Gallery = ({
     );
     setClientSave(!clientSave);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleSave`,
+      `${
+        import.meta.env.VITE_BACKEND_URL
+      }/images/${imgId}/engagements?type=SAVE`,
       {},
       {
         withCredentials: true,
@@ -245,6 +253,7 @@ const Gallery = ({
                           id: dataItem.uploadedBy,
                           name: dataItem.uploadedByUserName,
                         },
+                        savedByCurrentUser: dataItem.savedByCurrentUser,
                         isFollowing: dataItem.following,
                       });
                     }}
@@ -431,6 +440,7 @@ const ZoomedImage = ({
   ofUser = true,
   likedByCurrentUser,
   isFollowing,
+  savedByCurrentUser,
 }) => {
   const [clientLike, setClientLike] = useState(false);
   const [clientSave, setClientSave] = useState(false);
@@ -462,7 +472,8 @@ const ZoomedImage = ({
   const toggleLike = async () => {
     setClientLike(!clientLike);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleLike`,
+      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/engagements?type=LIKE
+      `,
       {},
       {
         withCredentials: true,
@@ -481,7 +492,8 @@ const ZoomedImage = ({
   const toggleSave = async () => {
     setClientSave(!clientSave);
     const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/toggleSave`,
+      `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/engagements?type=SAVE
+      `,
       {},
       {
         withCredentials: true,
@@ -544,11 +556,11 @@ const ZoomedImage = ({
                 size={24}
                 className={`transition-all duration-200
                 ${
-                  clientSave
+                  savedByCurrentUser
                     ? "fill-black/60 dark:fill-white/70"
                     : "fill-transparent text-black/70 dark:text-white"
                 }`}
-                strokeWidth={clientSave ? 0 : 2}
+                strokeWidth={savedByCurrentUser ? 0 : 2}
               />
 
               <p className="max-lg:hidden font-medium dark:text-white">Save</p>

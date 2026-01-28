@@ -242,7 +242,9 @@ const Dashboard = () => {
           >
             <div className={`${hasSavedImages ? "w-full" : "hidden"}`}>
               <Gallery
-                backendApi={`${import.meta.env.VITE_BACKEND_URL}/user/saved?`}
+                backendApi={`${
+                  import.meta.env.VITE_BACKEND_URL
+                }/images?savedOnly=${true}&`}
                 setHasData={(exist) => setHasSavedImages(exist)}
               />
             </div>

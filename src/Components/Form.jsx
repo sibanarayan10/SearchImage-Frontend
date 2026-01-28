@@ -35,6 +35,7 @@ function Form({ mode }) {
           headers: {
             "Content-Type": "application/json",
           },
+          withCredentials: false,
           validateStatus: (status) => status > 0,
         }
       );
