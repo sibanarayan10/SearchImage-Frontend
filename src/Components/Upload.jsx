@@ -6,6 +6,7 @@ import { CheckIcon, Plus } from "lucide-react";
 import { Trash2, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import api from "../config/Security";
 
 export const BeforeUpload = () => {
   const [file, setFile] = useState([]);
@@ -142,7 +143,7 @@ const AfterUpload = ({ file, setFile }) => {
     });
     formData.append("metadata", JSON.stringify(metaData));
     try {
-      const res = await axios.post(
+      const res = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/user/addImages`,
         formData,
         {

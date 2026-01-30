@@ -1,26 +1,10 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Loader2, Search, Image } from "lucide-react";
 
-const SearchComponent = () => {
+const SearchComponent = ({ onSubmit }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const navigate = useNavigate("/");
-
-  const handleInputChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const handleClick = (e) => {
-    e.preventDefault();
-    if (!searchTerm) {
-      setError("Please enter a search term.");
-
-      return;
-    }
-    navigate(`/user?search=${searchTerm}`);
-  };
 
   return (
     <div className="bg-[url(./Img/SearchLight.jpg)] dark:bg-[url(./Img/SearchBg.jpg)] flex flex-col justify-center items-center h-[550px] w-full px-8 relative transition-all duration-500 bg-cover bg-center bg-no-repeat min-[2000px]:dark:bg-bottom">
@@ -29,18 +13,24 @@ const SearchComponent = () => {
         <p>The best free stock images</p>
         <p>Simplicity meets stunning imagery</p>
       </div>
-      <form
-        className="flex items-center relative w-full max-w-xl rounded-lg bg-white group"
-        onSubmit={handleClick}
-      >
+
+      <div className="flex items-center relative w-full max-w-xl rounded-lg bg-white group">
         <Image className="absolute left-2 text-black/60 group-hover:group-hover:text-[#111111] transition-all duration-300 ml-2 -z-1" />
+
         <input
           type="text"
           value={searchTerm}
           name="desc"
-          onChange={handleInputChange}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+          }}
           placeholder="Search free images"
-          className="w-full rounded-lg px-14 py-4 outline-none focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-zinc-300 text-[#111111] transition-all duration-300"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              onSubmit(searchTerm);
+            }
+          }}
+          className="w-full  rounded-lg px-14 py-4 outline-none focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-zinc-300 text-[#111111] transition-all duration-300"
         />
         <button
           type="submit"
@@ -49,10 +39,10 @@ const SearchComponent = () => {
           {loading ? (
             <Loader2 className="h-full w-full animate-spin"></Loader2>
           ) : (
-            <Search />
+            <Search onClick={() => onSubmit(searchTerm)} />
           )}
         </button>
-      </form>
+      </div>
 
       <Link
         to={`/user/upload`}

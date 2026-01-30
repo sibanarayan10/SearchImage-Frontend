@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Edit, LogOut, CircleUser } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import Gallery from "./Gallery";
+import api from "../config/Security";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("My Uploads");
@@ -15,7 +15,7 @@ const Dashboard = () => {
   const tabs = ["My Uploads", "Saved"];
   const getUserDetail = async () => {
     try {
-      const response = await axios.get(
+      const response = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/user/details`,
         {
           headers: { "Content-Type": "application/json" },
@@ -35,7 +35,7 @@ const Dashboard = () => {
 
   const loadMoreImages = async () => {
     try {
-      const res = await axios.get(
+      const res = await api.get(
         `${backendApi}page=${0}&size=${10}&userSpecific=${true}`,
         {
           withCredentials: true,
@@ -79,7 +79,7 @@ const Dashboard = () => {
   }, [activeTab]);
   const handleLogout = async () => {
     try {
-      const response = await axios.post(
+      const response = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/user/log-out`,
         {},
         {

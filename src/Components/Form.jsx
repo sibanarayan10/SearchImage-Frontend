@@ -1,9 +1,9 @@
 import React, { useRef } from "react";
 import { useState, useEffect } from "react";
-import axios from "axios";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { Link, useNavigate } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
+import api from "../config/Security";
 
 function Form({ mode }) {
   const [loading, setLoading] = useState(false);
@@ -27,8 +27,8 @@ function Form({ mode }) {
 
     try {
       setLoading(true);
-
-      const response = await axios.post(
+      debugger;
+      const response = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/${endpoint}`,
         { ...values, token },
         {
@@ -44,10 +44,8 @@ function Form({ mode }) {
         setLoading(false);
 
         if (mode == "signup") {
-          navigate("auth/sign-in");
+          navigate("/sign-in");
         } else {
-          localStorage.setItem("profileImg", response.data?.user?.imgUrl || "");
-          localStorage.setItem("user", response?.data?.user?.name || "");
           navigate("/");
         }
       } else if (response.status > 300) {

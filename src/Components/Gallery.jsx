@@ -1,31 +1,26 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash, faEdit } from "@fortawesome/free-solid-svg-icons";
-import axios from "axios";
 import { X, ArrowDownToLine, Heart, Bookmark, Trash2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ImageEngagement } from "../lib/utils";
+import api from "../config/Security";
 
 const Gallery = ({
   backendApi,
-  DeleteAndEdit,
   search,
   setHasData = () => {},
   ofUser = false,
 }) => {
-  const [editFormId, setEditFormId] = useState(null);
-  const [editFormData, setEditFormData] = useState({ title: "", desc: "" });
   const [visible, setVisible] = useState(false);
   const [imgMetadata, setImgMetadata] = useState({});
   const [images, setImages] = useState([]);
-  const [skip, setSkip] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [clientLike, setClientLike] = useState(false);
   const [clientSave, setClientSave] = useState(false);
   const [likedImages, setLikedImages] = useState([]);
   const [savedImages, setSavedImages] = useState([]);
+  const [activeTab, setActiveTab] = useState("All");
   const observer = useRef();
   const PAGE_LIMIT = 10;
 
@@ -57,14 +52,27 @@ const Gallery = ({
 
       if (node) observer.current.observe(node);
     },
-    [loading, hasMore]
+    [hasMore]
   );
 
-  const loadMoreImages = async () => {
+  const loadMoreImages = async (isTabChanged = false) => {
     setLoading(true);
+    let userUploaded = false,
+      savedOnly = false;
+
+    switch (activeTab) {
+      case "Uploads": {
+        userUploaded = true;
+        break;
+      }
+      case "Saved": {
+        savedOnly = true;
+        break;
+      }
+    }
     try {
-      const res = await axios.get(
-        `${backendApi}page=${skip}&size=${PAGE_LIMIT}&userSpecific=${ofUser}`,
+      const res = await api.get(
+        `${backendApi}page=${page}&size=${PAGE_LIMIT}&userSpecific=${userUploaded}&savedOnly=${savedOnly}`,
         {
           withCredentials: true,
           validateStatus: (status) => status > 0,
@@ -81,13 +89,25 @@ const Gallery = ({
         _id: i.imageId,
         cloudinary_publicId: i.imageUrl,
       }));
+      if (isTabChanged) {
+        setImages([...newImgs]);
+        setSavedImages((prev) => [
+          ...newImgs
+            .filter((img) => img.savedByCurrentUser)
+            .map((img) => img._id),
+        ]);
 
-      if (newImgs.length === 0) {
+        setLikedImages((prev) => [
+          ...newImgs
+            .filter((img) => img.likedByCurrentUser)
+            .map((img) => img._id),
+        ]);
+      } else if (newImgs.length === 0) {
         setHasMore(false);
       } else {
-        setHasData(newImgs.length > 0);
+        setHasMore(newImgs.length === PAGE_LIMIT);
         setImages((prev) => [...prev, ...newImgs]);
-        setSkip((prev) => prev + PAGE_LIMIT);
+        setPage((prev) => prev + 1);
         setSavedImages((prev) => [
           ...prev,
           ...newImgs
@@ -108,55 +128,6 @@ const Gallery = ({
     setLoading(false);
   };
 
-  useEffect(() => {
-    setSkip(0);
-    setImages([]);
-    setHasMore(true);
-    loadMoreImages();
-  }, [backendApi]);
-
-  const removeItem = async (e) => {
-    const imgId = e.currentTarget.id;
-    try {
-      await axios.delete(`http://localhost:3000/api/user/images/${imgId}`, {
-        headers: { "Content-Type": "application/json" },
-        withCredentials: true,
-        validateStatus: (status) => status > 0,
-      });
-    } catch (error) {
-      console.error("Error deleting image:", error);
-    }
-    window.location.reload();
-  };
-
-  const handleEditClick = (dataItem) => {
-    setEditFormId(dataItem._id);
-
-    setEditFormData({ title: dataItem.title || "", desc: dataItem.desc || "" });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditFormData({ ...editFormData, [name]: value });
-  };
-
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.put(
-        `http://localhost:3000/api/user/images/${editFormId}`,
-        { title: editFormData.title, desc: editFormData.desc },
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      );
-      setEditFormId(null);
-    } catch (error) {
-      console.error("Error updating image:", error);
-    }
-  };
-
   const toggleLike = async (e, imgId) => {
     e.stopPropagation();
     setLikedImages((prev) =>
@@ -165,7 +136,7 @@ const Gallery = ({
         : [...prev, imgId]
     );
     setClientLike(!clientLike);
-    const response = await axios.post(
+    const response = await api.post(
       `${
         import.meta.env.VITE_BACKEND_URL
       }/images/${imgId}/engagements?type=LIKE`,
@@ -191,7 +162,7 @@ const Gallery = ({
         : [...prev, imgId]
     );
     setClientSave(!clientSave);
-    const response = await axios.post(
+    const response = await api.post(
       `${
         import.meta.env.VITE_BACKEND_URL
       }/images/${imgId}/engagements?type=SAVE`,
@@ -210,6 +181,11 @@ const Gallery = ({
       return;
     }
   };
+
+  useEffect(() => {
+    loadMoreImages(search.trim().length > 0 ? false : true);
+  }, [activeTab, search]);
+
   return (
     <div className="px-8 bg-white dark:bg-[#111111] min-h-screen flex flex-col justify-start items-center pt-16 pb-8 transition-all duration-500 relative ">
       <div
@@ -218,9 +194,25 @@ const Gallery = ({
         } justify-center max-w-[1460px] w-full`}
       >
         {location.pathname == "/" && (
-          <h2 className="text-2xl text-[#111111] dark:text-white mb-12">
-            Free Stock Images
-          </h2>
+          <div
+            className={`flex flex-row justify-start gap-5 max-w-[1460px] w-full`}
+          >
+            {["All", "Uploads", "Saved"].map((item) => (
+              <button
+                onClick={() => {
+                  setPage(0);
+                  setActiveTab(item);
+                }}
+                className={`px-5 py-3 rounded-full transition-all duration-300 mb-5 ${
+                  activeTab === item
+                    ? "bg-black dark:bg-white text-white dark:text-black tracking-wide"
+                    : "text-black/70 hover:text-black dark:text-white/60 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5"
+                }`}
+              >
+                <span className="text-gray-400">{item}</span>
+              </button>
+            ))}
+          </div>
         )}
         {images.length > 0 && search && (
           <h2 className="text-2xl text-[#111111] dark:text-white mb-12">
@@ -237,6 +229,7 @@ const Gallery = ({
           <>
             <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
               {images.map((dataItem, index) => {
+                debugger;
                 const isLast = index === images.length - 1;
                 return (
                   <div
@@ -318,80 +311,6 @@ const Gallery = ({
                       </a>
                     </button>
                     <div className="absolute top-0 h-full w-full bg-black/30 rounded-lg pointer-events-none group-hover:opacity-100 opacity-0 transition duration-300" />
-
-                    {DeleteAndEdit && (
-                      <div
-                        className="absolute bottom-0 right-0 p-2 flex space-x-2"
-                        style={{ background: "rgba(0, 0, 0, 0.6)" }}
-                      >
-                        <button
-                          onClick={() => handleEditClick(dataItem)}
-                          className="hover:scale-110 transition-all duration-150"
-                        >
-                          <FontAwesomeIcon
-                            icon={faEdit}
-                            style={{ color: "#63E6BE", cursor: "pointer" }}
-                          />
-                        </button>
-                        <button
-                          id={dataItem._id}
-                          onClick={removeItem}
-                          className="hover:scale-110 transition-all duration-150"
-                        >
-                          <FontAwesomeIcon
-                            icon={faTrash}
-                            style={{ color: "#FF6B6B", cursor: "pointer" }}
-                          />
-                        </button>
-                      </div>
-                    )}
-
-                    {editFormId === dataItem._id && (
-                      <form
-                        onSubmit={handleEditSubmit}
-                        className="absolute inset-0 flex flex-col justify-center items-center bg-black bg-opacity-75 p-4"
-                      >
-                        <input
-                          type="text"
-                          name="title"
-                          placeholder="Title"
-                          value={editFormData.title}
-                          onChange={handleInputChange}
-                          className="mb-2 p-2 rounded"
-                        />
-                        <input
-                          type="text"
-                          name="desc"
-                          placeholder="Description"
-                          value={editFormData.desc}
-                          onChange={handleInputChange}
-                          className="mb-2 p-2 rounded"
-                        />
-                        <div className="flex space-x-2">
-                          <button
-                            type="submit"
-                            className="bg-green-500 text-white px-4 py-2 rounded"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditFormId(null);
-                            }}
-                            className="bg-red-500 text-white px-4 py-2 rounded"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                    {/* <div className="absolute bottom-2 left-2 rounded-full border-white border-2 p-2 ">
-                  <UserRoundSearch
-                    className="h-4 w-4 text-white"
-                    onClick={() => getOwnerDetail(dataItem.owner)}
-                  ></UserRoundSearch>
-                </div> */}
                   </div>
                 );
               })}
@@ -445,16 +364,15 @@ const ZoomedImage = ({
   const [clientLike, setClientLike] = useState(false);
   const [clientSave, setClientSave] = useState(false);
   const [clientFollow, setClientFollow] = useState(isFollowing);
-  const [ownerId, setOwnerId] = useState(uploaderData.id);
-  const [uploadedBy, setUploadedBy] = useState(uploaderData.name);
-  const [totalLike, setTotalLike] = useState(totalLikes);
 
   const navigate = useNavigate();
 
   const toggleFollow = async () => {
     setClientFollow(!clientFollow);
-    const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/user/${ownerId}/toggleFollow`,
+    const response = await api.post(
+      `${import.meta.env.VITE_BACKEND_URL}/user/${
+        uploaderData.id
+      }/toggleFollow`,
       {},
       {
         withCredentials: true,
@@ -471,7 +389,7 @@ const ZoomedImage = ({
   };
   const toggleLike = async () => {
     setClientLike(!clientLike);
-    const response = await axios.post(
+    const response = await api.post(
       `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/engagements?type=LIKE
       `,
       {},
@@ -491,7 +409,7 @@ const ZoomedImage = ({
   };
   const toggleSave = async () => {
     setClientSave(!clientSave);
-    const response = await axios.post(
+    const response = await api.post(
       `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}/engagements?type=SAVE
       `,
       {},
@@ -511,7 +429,7 @@ const ZoomedImage = ({
   };
   const handleClick = async () => {
     try {
-      const response = await axios.post(
+      const response = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/images/${imgId}`,
         {},
         {
@@ -533,7 +451,7 @@ const ZoomedImage = ({
             <img src="./person.png" alt="" className="h-14 w-14 rounded-full" />
             <div className="flex flex-col items-start justify-center">
               <p className="dark:text-white font-medium text-left text-lg/5">
-                {uploadedBy}
+                {uploaderData.name}
               </p>
               <button
                 className={`mt-1 text-base ${
@@ -582,7 +500,7 @@ const ZoomedImage = ({
 
               <p className="font-medium dark:text-white flex gap-1">
                 <span className="max-lg:hidden">Like</span>
-                {totalLike}
+                {totalLikes}
               </p>
             </div>
             <div className="w-max flex items-center justify-center space-x-4 px-4 py-3 rounded-lg bg-primary hover:bg-secondary cursor-pointer transition-all duration-300">

@@ -1,43 +1,13 @@
-import { React, useContext, useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { React, useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
-import { User, CircleUser, Album } from "lucide-react";
-import { Context } from "../Context/globalContext";
+import { Album } from "lucide-react";
 
 const Navbar = ({ setLogout }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const navItems = ["upload"];
-  const { userAuth } = useContext(Context);
-  const [navigate, setNavigate] = useState("");
   const location = useLocation();
   const [isBackground, setIsBackground] = useState(false);
-  const navigateTo = useNavigate();
 
-  const handleUserAuth = async () => {
-    debugger;
-    if (!userAuth) {
-      return;
-    }
-    setLogout(true);
-    try {
-      const response = await axios.get(
-        "http://localhost:3000/api/user/log-out",
-        {
-          headers: {
-            "Content-type": "application/json",
-          },
-          withCredentials: true,
-          validateStatus: (status) => status > 0,
-        }
-      );
-      if (response.status == 200) {
-        setNavigate("/sign-in");
-      }
-    } catch (error) {
-      console.error("error in navbar", error);
-    }
-  };
   const hideNavbar = ["/sign-up", "/sign-in"];
 
   useEffect(() => {
@@ -56,9 +26,6 @@ const Navbar = ({ setLogout }) => {
       window.removeEventListener("scroll", handleScroll);
     };
   }, [isBackground]);
-  const rawProfileImg = localStorage.getItem("profileImg");
-  const profileImg =
-    rawProfileImg && rawProfileImg !== "undefined" ? rawProfileImg : null;
 
   return !hideNavbar.includes(location.pathname) ? (
     <div
@@ -83,58 +50,15 @@ const Navbar = ({ setLogout }) => {
           </div>
 
           <div className="flex flex-row items-center justify-end  gap-x-4 min-[475px]:w-1/2 w-2/3 ">
-            <div
-              className={`
-                  ${localStorage.getItem("user") ? "hidden" : "flex"}
-               justify-center items-center`}
-            >
-              {/* <Link to="/sign-in">
-                <button
-                  type="button"
-                  className="flex p-1.5 text-center dark:text-white rounded-full transition-all duration-300 hover:bg-black/15 dark:hover:bg-white/10"
-                  onClick={handleUserAuth}
-                >
-                  <span>
-                    <User size={30} />
-                  </span>
-                </button>
-              </Link> */}
-            </div>
-
             <Link
               to={`/user/upload`}
-              className={`${
-                localStorage.getItem("user") ? "hidden sm:flex" : "hidden"
-              } bg-[#111111] dark:bg-white text-white dark:text-[#111111] font-medium ring-1 ring-[#111111] dark:ring-white hover:ring-0 text-center px-4 py-3 rounded-lg transition-all duration-300 capitalize`}
+              className={`bg-[#111111] dark:bg-white text-white dark:text-[#111111] font-medium ring-1 ring-[#111111] dark:ring-white hover:ring-0 text-center px-4 py-3 rounded-lg transition-all duration-300 capitalize`}
               onClick={() => setIsOpen(false)}
             >
               Upload
             </Link>
 
-            <button
-              title="Profile"
-              onClick={() => navigateTo("/dashboard")}
-              className={` h-10 w-10 rounded-full overflow-hidden`}
-            >
-              {/* {profileImg ? (
-                <img
-                  src={`https://res.cloudinary.com/dewv14vkx/image/upload/v1/${profileImg}`}
-                  alt="profile"
-                  className="h-full w-full object-cover"
-                />
-              ) : ( */}
-              <CircleUser className="h-full w-full dark:text-white" />
-              {/* )} */}
-            </button>
-
             <ThemeToggle />
-
-            {/* <div className="hidden max-[768px]:flex">
-              <TableOfContents
-                className="text-white hover:scale-110 transition-all duration-150 cursor-pointer w-4"
-                onClick={() => setIsOpen((prev) => !prev)}
-              />
-            </div> */}
           </div>
         </div>
       </div>

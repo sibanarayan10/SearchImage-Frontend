@@ -1,26 +1,22 @@
 import SearchComponent from "../Components/Search";
 import Gallery from "../Components/Gallery";
-import { useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { useState } from "react";
 
 export const HomePage = ({ backendApi }) => {
-  const [searchQuery] = useSearchParams();
-
-  const search = searchQuery.get("search");
-  const [searchParams, setSearchParams] = useState(search);
-  useEffect(() => {
-    setSearchParams(search);
-  }, [search]);
+  const [search, setSearch] = useState("");
   return (
     <>
-      <SearchComponent />
+      <SearchComponent
+        onSubmit={(value) => {
+          if (value.trim() === "") {
+            return;
+          }
+          setSearch(value);
+        }}
+      />
       <Gallery
-        key={searchParams}
         search={search}
-        backendApi={
-          search ? `${backendApi}?q=${searchParams}&` : `${backendApi}?`
-        }
+        backendApi={search ? `${backendApi}?q=${search}&` : `${backendApi}?`}
         DeleteAndEdit={false}
       />
     </>
