@@ -22,7 +22,7 @@ const EditProfile = () => {
 
   const getUserDetail = async () => {
     try {
-      const response = await axios.get(
+      const response = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/user/profile`,
         {
           headers: { "Content-Type": "application/json" },
@@ -79,7 +79,7 @@ const EditProfile = () => {
     }
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/user/profile/update`,
         data,
         {

@@ -23,8 +23,6 @@ const App = () => {
       <Router>
         <Navbar setLogout={setLogout} />
         <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/sign-up" element={<Auth mode="signup" />} />
           <Route path="/sign-in" element={<Auth mode="signin" />} />
           <Route
