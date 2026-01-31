@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Search, Image } from "lucide-react";
 
-const SearchComponent = ({ onSubmit }) => {
+const SearchComponent = ({ onSubmit, search }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    setSearchTerm(search || "");
+  }, [search]);
 
   return (
     <div className="bg-[url(./Img/SearchLight.jpg)] dark:bg-[url(./Img/SearchBg.jpg)] flex flex-col justify-center items-center h-[550px] w-full px-8 relative transition-all duration-500 bg-cover bg-center bg-no-repeat min-[2000px]:dark:bg-bottom">
