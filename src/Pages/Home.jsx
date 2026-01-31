@@ -4,6 +4,7 @@ import { useState } from "react";
 
 export const HomePage = ({ backendApi }) => {
   const [search, setSearch] = useState("");
+
   return (
     <>
       <SearchComponent
@@ -13,11 +14,17 @@ export const HomePage = ({ backendApi }) => {
           }
           setSearch(value);
         }}
+        search={search}
       />
       <Gallery
         search={search}
         backendApi={search ? `${backendApi}?q=${search}&` : `${backendApi}?`}
         DeleteAndEdit={false}
+        onTabChange={(val) => {
+          if (val) {
+            setSearch("");
+          }
+        }}
       />
     </>
   );

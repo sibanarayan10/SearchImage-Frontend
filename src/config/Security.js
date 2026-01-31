@@ -5,7 +5,14 @@ const api = axios.create({
   withCredentials: true,
 });
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.status === 401 || response.status === 403) {
+      localStorage.clear();
+      window.location.href = "/sign-in";
+      return;
+    }
+    return response;
+  },
   (error) => {
     const status = error.response?.status;
 
