@@ -27,7 +27,6 @@ function Form({ mode }) {
 
     try {
       setLoading(true);
-      debugger;
       const response = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/${endpoint}`,
         { ...values, token },
