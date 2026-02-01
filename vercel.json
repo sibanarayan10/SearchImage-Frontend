@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://search-image-ag32.onrender.com/api/:path*"
+      "destination": "https://search-image-1.onrender.com/api/:path*"
     },
     { "source": "/(.*)", "destination": "/" }
   ]
