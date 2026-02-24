@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import api from "../config/Security";
 import { Spin } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
+import { useInView } from "react-intersection-observer";
 const Gallery = ({
   backendApi,
   search,
@@ -16,14 +17,23 @@ const Gallery = ({
   const [imgMetadata, setImgMetadata] = useState({});
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({ type: "", show: false });
   const [hasMore, setHasMore] = useState(false);
   const [likedImages, setLikedImages] = useState([]);
   const [savedImages, setSavedImages] = useState([]);
   const [activeTab, setActiveTab] = useState("All");
   const [downloading, setDownloading] = useState(false);
 
-  const observer = useRef();
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: "100px",
+  });
+  useEffect(() => {
+    if (inView && hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  }, [inView]);
+
   const PAGE_LIMIT = 10;
 
   const location = useLocation();
@@ -40,23 +50,7 @@ const Gallery = ({
     };
   }, [visible]);
 
-  const lastImageRef = (node) => {
-    if (loading) return;
-
-    if (observer.current) observer.current.disconnect();
-
-    observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
-        getImages();
-      }
-    });
-
-    if (node) observer.current.observe(node);
-  };
   const setImageEngagements = (imgs = []) => {
-    if (imgs.length == 0) {
-      return;
-    }
     setImages([...imgs]);
     const savedImgIds = [],
       likedImgIds = [];
@@ -72,7 +66,11 @@ const Gallery = ({
     setSavedImages(savedImgIds);
   };
   const getImages = async (loadNew = false) => {
-    setLoading(true);
+    setLoading((prev) =>
+      loadNew
+        ? { ...prev, show: true, type: "initial" }
+        : { type: "loadmore", show: true }
+    );
     let userUploaded = false,
       savedOnly = false;
 
@@ -104,14 +102,13 @@ const Gallery = ({
         setImageEngagements(newImgs);
       } else {
         setHasMore(newImgs.length === PAGE_LIMIT);
-        setPage((prev) => prev + 1);
         const newImages = [...images, ...newImgs];
         setImageEngagements(newImages);
       }
     } catch (err) {
       console.error("Error fetching images:", err);
     } finally {
-      setLoading(false);
+      setLoading({ show: false, type: "" });
     }
   };
   const toggleLike = async (e, imgId) => {
@@ -190,17 +187,21 @@ const Gallery = ({
   };
 
   useEffect(() => {
+    getImages();
+  }, [page]);
+
+  useEffect(() => {
     getImages(true);
   }, [activeTab, search]);
 
   return (
     <div className="px-8 bg-white dark:bg-[#111111] border-white min-h-screen flex flex-col justify-start items-center pt-16 pb-8 transition-all duration-500 relative ">
-      {loading ? (
+      {loading && loading.show && loading.type === "initial" ? (
         <div
           className="flex items-center justify-center  border-red-500"
           style={{ height: "calc(100vh - 550px)" }}
         >
-          <Spin size="large" tip="Loading..." />
+          <Spin size="large" description="Loading..." />
         </div>
       ) : (
         <div
@@ -270,7 +271,6 @@ const Gallery = ({
                           isFollowing: dataItem.following,
                         });
                       }}
-                      ref={isLast && hasMore ? lastImageRef : null}
                     >
                       <img
                         src={`${dataItem.cloudinary_publicId}`}
@@ -331,6 +331,7 @@ const Gallery = ({
                   );
                 })}
               </div>
+              <div ref={ref}></div>
             </>
           ) : (
             !loading &&
