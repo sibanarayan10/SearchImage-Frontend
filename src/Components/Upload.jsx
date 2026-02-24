@@ -6,6 +6,7 @@ import { Trash2, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import api from "../config/Security";
+import { Button } from "antd";
 
 export const BeforeUpload = () => {
   const [file, setFile] = useState([]);
@@ -132,9 +133,11 @@ const AfterUpload = ({ file, setFile }) => {
     { file: file[0], title: "", description: "", tags: [] },
   ]);
   const [tag, setTag] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     const formData = new FormData();
+    setLoading(true);
 
     const { files, metaData } = modifiedValue(values);
     files.forEach((item, index) => {
@@ -160,6 +163,8 @@ const AfterUpload = ({ file, setFile }) => {
       navigate("/");
     } catch (err) {
       console.error("Upload failed", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -351,12 +356,31 @@ const AfterUpload = ({ file, setFile }) => {
           <p className="text-zinc-500 dark:text-white text-base">
             Selected photo : {file.length}
           </p>
-          <button
-            className="px-6 py-2 bg-primary hover:bg-secondary rounded-lg  text-white font-normal text-center transition-all duration-300"
-            onClick={handleSubmit}
+          <Button
+            size="large"
+            onClick={(e) => {
+              if (!loading) {
+                handleSubmit(e);
+              }
+            }}
+            loading={loading}
+            style={{
+              backgroundColor: loading ? "#0950b3" : "#1677FF",
+              border: loading ? "#0950b3" : "#1677FF",
+              color: "white",
+            }}
+            styles={{
+              icon: { color: "white", fontSize: 20 },
+              content: {},
+            }}
           >
             Submit your photos
-          </button>
+          </Button>
+          {/* <button
+            className="px-6 py-2 bg-primary hover:bg-secondary rounded-lg  text-white font-normal text-center transition-all duration-300"
+            onClick={handleSubmit}
+            disabled={loading}
+          ></button> */}
         </div>
       </div>
     </div>
