@@ -1,13 +1,9 @@
 {
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://api.pixhunt.xyz/api/$1",
-      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+      "source": "/api/:path*",
+      "destination": "https://api.pixhunt.xyz/:path*"
     },
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
