@@ -16,8 +16,11 @@ function Auth({ mode }) {
       <div className="hidden">
         <ThemeToggle />
       </div>
-      <div className="flex w-full h-screen max-[800px]:justify-center max-[800px]:bg-[url(./bg.avif)] bg-cover overflow-auto">
-        <div className="flex items-start justify-center relative bg-[url('./bg.avif')] w-3/5 max-[800px]:hidden h-screen bg-cover ">
+      <div className="flex w-full h-screen max-[800px]:justify-center  bg-cover overflow-auto">
+        <div
+          className="flex items-start justify-center relative  w-3/5 max-[800px]:hidden h-screen bg-cover "
+          style={{ backgroundImage: "url(./bg.avif)" }}
+        >
           <div className="absolute bottom-14 flex flex-col justify-center items-center border border-white rounded-lg px-2 py-2 w-[90%] lg:max-w-md lg:right-8 z-50 bg-black/20">
             <h1 className="font-bold heading text-white">
               CAPTURE, CREATE AND INSPIRE
