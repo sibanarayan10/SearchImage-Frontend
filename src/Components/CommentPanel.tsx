@@ -1,9 +1,9 @@
 import { Spin } from "antd";
 import { Loader2, MessageCircle, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import api from "../config/Security";
 import { toast } from "react-toastify";
 import { LoadingOutlined } from "@ant-design/icons";
+import api from "../config/Security";
 
 interface CommentItem {
   commentId: number;
@@ -38,9 +38,9 @@ export const CommentPanel: React.FC<CommentPanelProps> = ({
     api
       .get(`${import.meta.env.VITE_BACKEND_URL}/images/${imageId}/comments`, {
         withCredentials: true,
-        validateStatus: (s) => s > 0,
+        validateStatus: (s: any) => s > 0,
       })
-      .then((res) => {
+      .then((res: any) => {
         setComments(res.data || []);
       })
       .catch(() => toast.error("Could not load comments"))

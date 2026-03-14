@@ -1,15 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { ShootingStars } from "./ui/shooting-stars";
 import { StarsBackground } from "./ui/stars-background";
-import {
-  CheckIcon,
-  Plus,
-  Trash2,
-  X,
-  Upload,
-  ImageIcon,
-  Sparkles,
-} from "lucide-react";
+import { CheckIcon, Plus, Upload, ImageIcon, Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import api from "../config/Security";
@@ -23,9 +15,24 @@ import {
 
 const { TextArea } = Input;
 
-/* ─── Before Upload ─────────────────────────────────────────────── */
-export const BeforeUpload = () => {
-  const [file, setFile] = useState([]);
+// ─── Types ────────────────────────────────────────────────────────
+
+interface UploadValue {
+  file: File;
+  title: string;
+  description: string;
+  tags: string[];
+}
+
+interface AfterUploadProps {
+  file: File[];
+  setFile: React.Dispatch<React.SetStateAction<File[]>>;
+}
+
+// ─── BeforeUpload ─────────────────────────────────────────────────
+
+export const BeforeUpload: React.FC = () => {
+  const [file, setFile] = useState<File[]>([]);
 
   if (file.length > 0) return <AfterUpload file={file} setFile={setFile} />;
 
@@ -52,10 +59,13 @@ export const BeforeUpload = () => {
         </p>
       </div>
 
-      {/* Drop zone */}
       <div
         className="relative flex flex-col items-center justify-center gap-y-6 w-full max-w-3xl mt-10 z-50 border-2 border-dashed border-black/20 dark:border-white/20 hover:border-primary dark:hover:border-primary rounded-2xl px-8 py-14 bg-black/5 dark:bg-white/5 hover:bg-primary/5 transition-all duration-300 cursor-pointer group"
-        onClick={() => document.getElementById("fileInputBefore").click()}
+        onClick={() =>
+          (
+            document.getElementById("fileInputBefore") as HTMLInputElement
+          )?.click()
+        }
       >
         <div className="flex flex-col items-center gap-3">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all duration-300">
@@ -78,8 +88,8 @@ export const BeforeUpload = () => {
           id="fileInputBefore"
           className="hidden"
           onChange={(e) => {
-            const files = e.target.files[0];
-            if (files) setFile((prev) => [...prev, files]);
+            const f = e.target.files?.[0];
+            if (f) setFile((prev) => [...prev, f]);
           }}
         />
       </div>
@@ -87,17 +97,19 @@ export const BeforeUpload = () => {
   );
 };
 
-/* ─── After Upload ──────────────────────────────────────────────── */
-const AfterUpload = ({ file, setFile }) => {
+// ─── AfterUpload ──────────────────────────────────────────────────
+
+const AfterUpload: React.FC<AfterUploadProps> = ({ file, setFile }) => {
   const navigate = useNavigate();
-  const [values, setValues] = useState([
+
+  const [values, setValues] = useState<UploadValue[]>([
     { file: file[0], title: "", description: "", tags: [] },
   ]);
-  const [tagInputs, setTagInputs] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [activeCard, setActiveCard] = useState(0);
+  const [tagInputs, setTagInputs] = useState<Record<number, string>>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [activeCard, setActiveCard] = useState<number>(0);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     setLoading(true);
     const formData = new FormData();
     const { files, metaData } = modifiedValue();
@@ -127,41 +139,50 @@ const AfterUpload = ({ file, setFile }) => {
     }
   };
 
-  const handleTagKeyDown = (e, index) => {
+  const handleTagKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ): void => {
     if (e.key === " " || e.code === "Space") {
       e.preventDefault();
-      const val = (tagInputs[index] || "").trim();
+      const val = (tagInputs[index] ?? "").trim();
       if (!val) return;
-      const prevTags = values[index]?.tags || [];
+      const prevTags = values[index]?.tags ?? [];
       setFieldValue("tags", [...prevTags, val], index);
       setTagInputs((prev) => ({ ...prev, [index]: "" }));
     }
   };
 
-  const removeTag = (i, j) => {
+  const removeTag = (i: number, j: number): void => {
     const newTags = values[i].tags.filter((_, idx) => idx !== j);
     setValues((prev) =>
       prev.map((p, idx) => (idx === i ? { ...p, tags: newTags } : p))
     );
   };
 
-  const modifiedValue = () => {
-    const files = values.map((v) => v.file);
-    const metaData = values.map((v) => ({
+  const modifiedValue = (): {
+    files: File[];
+    metaData: Omit<UploadValue, "file">[];
+  } => ({
+    files: values.map((v) => v.file),
+    metaData: values.map((v) => ({
       title: v.title,
       description: v.description,
       tags: v.tags,
-    }));
-    return { files, metaData };
-  };
+    })),
+  });
 
-  const setFieldValue = (name, newValue, index) => {
+  const setFieldValue = (
+    name: keyof UploadValue,
+    newValue: UploadValue[keyof UploadValue],
+    index: number
+  ): void => {
     setValues((prev) =>
       prev.map((p, idx) => (idx === index ? { ...p, [name]: newValue } : p))
     );
   };
 
-  const deleteImage = (i) => {
+  const deleteImage = (i: number): void => {
     const updatedFiles = file.filter((_, idx) => idx !== i);
     setFile(updatedFiles);
     const nv = values.filter((_, idx) => idx !== i);
@@ -169,7 +190,7 @@ const AfterUpload = ({ file, setFile }) => {
     if (activeCard >= nv.length) setActiveCard(Math.max(0, nv.length - 1));
   };
 
-  const completionScore = (v) => {
+  const completionScore = (v: UploadValue): number => {
     let score = 0;
     if (v.title.trim()) score += 40;
     if (v.description.trim()) score += 30;
@@ -183,7 +204,6 @@ const AfterUpload = ({ file, setFile }) => {
       <StarsBackground />
 
       <div className="w-full max-w-5xl flex flex-col items-center gap-y-6 z-50">
-        {/* Header */}
         <div className="text-center">
           <h1 className="text-black dark:text-white text-3xl font-semibold">
             Make your photos easy to find
@@ -194,7 +214,7 @@ const AfterUpload = ({ file, setFile }) => {
           </p>
         </div>
 
-        {/* Thumbnail strip + add button */}
+        {/* Thumbnail strip */}
         <div className="flex items-center gap-3 p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/10 dark:border-white/10 w-full overflow-x-auto scrollBar">
           {values.map((item, idx) => {
             const score = completionScore(item);
@@ -224,7 +244,6 @@ const AfterUpload = ({ file, setFile }) => {
             );
           })}
 
-          {/* Add more */}
           <label
             htmlFor="fileInputAfter"
             className="flex-shrink-0 cursor-pointer"
@@ -242,7 +261,7 @@ const AfterUpload = ({ file, setFile }) => {
             className="hidden"
             multiple
             onChange={(e) => {
-              const f = e.target.files[0];
+              const f = e.target.files?.[0];
               if (f) {
                 setValues((prev) => [
                   ...prev,
@@ -259,7 +278,6 @@ const AfterUpload = ({ file, setFile }) => {
         {values[activeCard] && (
           <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden shadow-lg">
             <div className="flex max-[800px]:flex-col">
-              {/* Image preview */}
               <div className="w-2/5 max-[800px]:w-full bg-black/5 dark:bg-black/40 flex items-center justify-center p-6 min-h-[380px]">
                 <img
                   src={URL.createObjectURL(values[activeCard].file)}
@@ -268,9 +286,7 @@ const AfterUpload = ({ file, setFile }) => {
                 />
               </div>
 
-              {/* Form */}
               <div className="flex-1 p-6 flex flex-col gap-y-5">
-                {/* Header row */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Badge count={activeCard + 1} color="#1677FF" />
@@ -304,7 +320,6 @@ const AfterUpload = ({ file, setFile }) => {
                   </div>
                 </div>
 
-                {/* Title */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-black/50 dark:text-white/50 uppercase tracking-wider flex items-center gap-1.5">
                     <PictureOutlined /> Title
@@ -322,7 +337,6 @@ const AfterUpload = ({ file, setFile }) => {
                   />
                 </div>
 
-                {/* Tags */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-black/50 dark:text-white/50 uppercase tracking-wider flex items-center gap-1.5">
                     <TagOutlined /> Tags
@@ -332,7 +346,7 @@ const AfterUpload = ({ file, setFile }) => {
                   </label>
                   <Input
                     placeholder="nature, landscape, sunset..."
-                    value={tagInputs[activeCard] || ""}
+                    value={tagInputs[activeCard] ?? ""}
                     onChange={(e) =>
                       setTagInputs((prev) => ({
                         ...prev,
@@ -363,7 +377,6 @@ const AfterUpload = ({ file, setFile }) => {
                   )}
                 </div>
 
-                {/* Description */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-black/50 dark:text-white/50 uppercase tracking-wider flex items-center gap-1.5">
                     <FileTextOutlined /> Description
@@ -381,7 +394,6 @@ const AfterUpload = ({ file, setFile }) => {
                   />
                 </div>
 
-                {/* Navigate between cards */}
                 {values.length > 1 && (
                   <div className="flex items-center gap-2 mt-auto pt-2">
                     <button

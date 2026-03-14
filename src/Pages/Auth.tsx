@@ -1,10 +1,20 @@
-import React from "react";
-import { useState } from "react";
 import Form from "../Components/Form";
 import ThemeToggle from "../Components/ThemeToggle";
 
-function Auth({ mode }) {
-  const thought = {
+type AuthMode = "signup" | "signin";
+
+interface AuthProps {
+  mode: AuthMode;
+}
+
+interface Thought {
+  thought: string;
+  author: string;
+  imgUrl: string;
+}
+
+const Auth: React.FC<AuthProps> = ({ mode }) => {
+  const thought: Thought = {
     thought:
       "A single photograph can capture a thousand emotions — share yours with the world.",
     author: "Sibanarayan Choudhury",
@@ -12,13 +22,14 @@ function Auth({ mode }) {
   };
 
   return (
-    <div className="container mx-auto max-w-screen-2xl ">
+    <div className="container mx-auto max-w-screen-2xl">
       <div className="hidden">
         <ThemeToggle />
       </div>
-      <div className="flex w-full h-screen max-[800px]:justify-center  bg-cover overflow-auto">
+      <div className="flex w-full h-screen max-[800px]:justify-center bg-cover overflow-auto">
+        {/* Left panel */}
         <div
-          className="flex items-start justify-center relative  w-3/5 max-[800px]:hidden h-screen bg-cover "
+          className="flex items-start justify-center relative w-3/5 max-[800px]:hidden h-screen bg-cover"
           style={{ backgroundImage: "url(./bg.avif)" }}
         >
           <div className="absolute bottom-14 flex flex-col justify-center items-center border border-white rounded-lg px-2 py-2 w-[90%] lg:max-w-md lg:right-8 z-50 bg-black/20">
@@ -35,7 +46,7 @@ function Auth({ mode }) {
             </h3>
           </div>
 
-          <div className="flex items-center  mt-6 gap-x-2 w-2/5 absolute top-10 right-5 z-50">
+          <div className="flex items-center mt-6 gap-x-2 w-2/5 absolute top-10 right-5 z-50">
             <div className="flex flex-col w-full">
               <p className="thought text-gray-800 text-lg">{thought.thought}</p>
               <p className="text-right w-full text-white text-sm font-semibold italic">
@@ -44,9 +55,12 @@ function Auth({ mode }) {
             </div>
           </div>
 
-          <div className="absolute top-0 bg-black/20 h-full w-full"></div>
+          <div className="absolute top-0 bg-black/20 h-full w-full" />
         </div>
-        <div className="hidden max-[800px]:block absolute top-0 bg-white/70 dark:bg-black/90 h-full w-full"></div>
+
+        <div className="hidden max-[800px]:block absolute top-0 bg-white/70 dark:bg-black/90 h-full w-full" />
+
+        {/* Right panel */}
         <div
           className={`min-[800px]:w-2/5 flex flex-col items-center gap-y-2 overflow-scroll scrollBar py-4 z-50 ${
             mode === "signup" ? "justify-start" : "justify-center"
@@ -60,6 +74,6 @@ function Auth({ mode }) {
       </div>
     </div>
   );
-}
+};
 
 export default Auth;
