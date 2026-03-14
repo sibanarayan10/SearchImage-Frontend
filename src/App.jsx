@@ -6,6 +6,7 @@ import { BeforeUpload } from "./Components/Upload";
 import { HomePage } from "./Pages/Home";
 import Auth from "./Pages/Auth";
 import { ToastContainer } from "react-toastify";
+import UserProfile from "./Components/UserProfile";
 
 const App = () => {
   const [logout, setLogout] = useState(false);
@@ -38,6 +39,7 @@ const App = () => {
             }
           />
           <Route path="/user/upload" element={<BeforeUpload />} />
+          <Route path="/user/profile" element={<UserProfile />} />
         </Routes>
         <BackToTop />
       </Router>
