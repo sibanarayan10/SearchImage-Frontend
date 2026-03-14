@@ -2,16 +2,18 @@ import SearchComponent from "../Components/Search";
 import Gallery from "../Components/Gallery";
 import { useState } from "react";
 
-export const HomePage = ({ backendApi }) => {
-  const [search, setSearch] = useState("");
+interface HomePageProps {
+  backendApi: string;
+}
+
+export const HomePage: React.FC<HomePageProps> = ({ backendApi }) => {
+  const [search, setSearch] = useState<string>("");
 
   return (
     <>
       <SearchComponent
         onSubmit={(value) => {
-          if (value.trim() === "") {
-            return;
-          }
+          if (value.trim() === "") return;
           setSearch(value);
         }}
         search={search}
@@ -19,11 +21,8 @@ export const HomePage = ({ backendApi }) => {
       <Gallery
         search={search}
         backendApi={search ? `${backendApi}?q=${search}&` : `${backendApi}?`}
-        DeleteAndEdit={false}
         onTabChange={(val) => {
-          if (val) {
-            setSearch("");
-          }
+          if (val) setSearch("");
         }}
       />
     </>
