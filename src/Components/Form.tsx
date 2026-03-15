@@ -124,7 +124,7 @@ function Form({ mode }: FormProps) {
         { ...values, token },
         {
           headers: { "Content-Type": "application/json" },
-          withCredentials: false,
+          withCredentials: true,
           validateStatus: (status) => status > 0,
         }
       );
