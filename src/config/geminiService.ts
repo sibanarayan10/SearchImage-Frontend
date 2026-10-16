@@ -442,3 +442,213 @@ User question: "${question}"`;
 
   throw new Error(lastError?.message || "Failed to generate answer.");
 };
+
+export interface AiModerationAndMetadataResult {
+  isSafe: boolean;
+  safetyReason?: string;
+  title: string;
+  description: string;
+  tags: string[];
+}
+
+/**
+ * Converts a local File to downscaled base64 JPEG without canvas tainting
+ */
+export const fileToBase64 = async (
+  file: File,
+  maxDimension = 800
+): Promise<{ mimeType: string; data: string }> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new window.Image();
+
+      img.onload = () => {
+        try {
+          let width = img.naturalWidth || img.width;
+          let height = img.naturalHeight || img.height;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(width, 1);
+          canvas.height = Math.max(height, 1);
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            throw new Error("Unable to initialize canvas context");
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          const base64Data = compressedDataUrl.split(",")[1];
+
+          resolve({
+            mimeType: "image/jpeg",
+            data: base64Data,
+          });
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error("Unable to decode image file."));
+      };
+
+      img.src = dataUrl;
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Unable to read local image file."));
+    };
+
+    reader.readAsDataURL(file);
+  });
+};
+
+/**
+ * Inspects image for vulgarity/safety violations and generates title, description, and tags.
+ */
+export const moderateAndAutoFillPhoto = async (
+  file: File
+): Promise<AiModerationAndMetadataResult> => {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error("AI service is currently not configured.");
+  }
+
+  const { mimeType, data } = await fileToBase64(file);
+
+  const prompt = `You are an automated photo moderation and metadata AI assistant.
+Carefully inspect this uploaded photograph and complete TWO mandatory tasks:
+
+1. CONTENT SAFETY & VULGARITY MODERATION:
+Screen for:
+- Vulgarity, sexually explicit content, nudity, or pornography
+- Extreme gore, violence, blood, or mutilation
+- Hate speech symbols, harassment, or offensive imagery
+- Illegal activities or dangerous content
+
+If ANY of these are detected:
+- Set "isSafe": false
+- Set "safetyReason": A clear, concise explanation of why it was flagged (e.g. "Image contains sexually explicit content or nudity.", "Image contains graphic violence or gore.", "Image contains vulgar or offensive visual material.")
+
+If the image is clean, appropriate, and safe for a public photo gallery:
+- Set "isSafe": true
+- Set "safetyReason": ""
+
+2. METADATA AUTO-FILL (only if isSafe is true):
+- "title": A creative, professional title. STRICT LIMIT: MAXIMUM 20 CHARACTERS.
+- "description": An engaging photo description. STRICT LIMIT: MAXIMUM 100 CHARACTERS.
+- "tags": An array of 4 to 6 lowercase single-word tags without '#' (e.g. ["sunset", "ocean", "nature"])
+
+Respond ONLY with a JSON object in this exact schema, with no surrounding markdown or explanation:
+{
+  "isSafe": true,
+  "safetyReason": "",
+  "title": "Title here",
+  "description": "Description here",
+  "tags": ["tag1", "tag2", "tag3"]
+}`;
+
+  let lastError: any = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: data,
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json",
+        },
+      };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Model ${model} returned HTTP ${response.status}`);
+      }
+
+      const resJson = await response.json();
+      const rawText =
+        resJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+      if (!rawText) {
+        throw new Error("Empty AI response received.");
+      }
+
+      let parsed: any;
+      try {
+        const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        parsed = JSON.parse(jsonMatch ? jsonMatch[1].trim() : rawText);
+      } catch {
+        parsed = JSON.parse(rawText);
+      }
+
+      const isSafe = Boolean(parsed.isSafe);
+      const safetyReason = String(parsed.safetyReason || "").trim();
+
+      const rawTitle = String(parsed.title || "").trim();
+      const title = rawTitle.slice(0, 20);
+
+      const rawDesc = String(parsed.description || "").trim();
+      const description = rawDesc.slice(0, 100);
+
+      let tags: string[] = [];
+      if (Array.isArray(parsed.tags)) {
+        tags = parsed.tags
+          .map((t: any) =>
+            String(t).replace(/^#/, "").trim().toLowerCase()
+          )
+          .filter(Boolean)
+          .slice(0, 8);
+      }
+
+      return {
+        isSafe,
+        safetyReason: isSafe
+          ? ""
+          : safetyReason || "Flagged as inappropriate content.",
+        title: isSafe ? title : "",
+        description: isSafe ? description : "",
+        tags: isSafe ? tags : [],
+      };
+    } catch (err: any) {
+      lastError = err;
+      continue;
+    }
+  }
+
+  throw new Error(
+    lastError?.message || "Failed to analyze photo with AI. Please try again."
+  );
+};
+
