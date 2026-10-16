@@ -1,11 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Search, Image } from "lucide-react";
+import { Loader2, Search, Image, X, TrendingUp } from "lucide-react";
 
 interface SearchComponentProps {
   onSubmit: (value: string) => void;
   search: string;
 }
+
+const TRENDING_TAGS = [
+  "Nature",
+  "Cyberpunk",
+  "Minimalist",
+  "Architecture",
+  "Portraits",
+  "Street",
+  "Golden Hour",
+  "Abstract",
+];
 
 const SearchComponent: React.FC<SearchComponentProps> = ({
   onSubmit,
@@ -19,38 +30,77 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   }, [search]);
 
   return (
-    <div className="bg-[url(./Img/SearchLight.jpg)] dark:bg-[url(./Img/SearchBg.jpg)] flex flex-col justify-center items-center h-[550px] w-full px-8 relative transition-all duration-500 bg-cover bg-center bg-no-repeat min-[2000px]:dark:bg-bottom">
-      <div className="absolute h-full w-full dark:bg-black/50" />
+    <div className="bg-[url(./Img/SearchLight.jpg)] dark:bg-[url(./Img/SearchBg.jpg)] flex flex-col justify-center items-center h-[560px] w-full px-8 relative transition-all duration-500 bg-cover bg-center bg-no-repeat min-[2000px]:dark:bg-bottom">
+      <div className="absolute h-full w-full dark:bg-black/55 backdrop-blur-[1px]" />
 
       <div className="text-2xl min-[400px]:text-4xl text-[#111111] dark:text-white text-center font-medium pb-8 z-10">
-        <p>The best free stock images</p>
-        <p>Simplicity meets stunning imagery</p>
+        <p className="tracking-tight">The best free stock images</p>
+        <p className="text-black/70 dark:text-white/70 text-lg sm:text-xl font-normal mt-2">
+          Powered by community creators & AI visual insights
+        </p>
       </div>
 
-      <div className="flex items-center relative w-full max-w-xl rounded-lg bg-white group">
-        <Image className="absolute left-2 text-black/60 group-hover:text-[#111111] transition-all duration-300 ml-2" />
+      {/* Floating Glassmorphism Search Bar */}
+      <div className="flex items-center relative w-full max-w-xl rounded-2xl bg-white/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-2xl border border-black/10 dark:border-white/10 group z-10 transition-all duration-300 focus-within:ring-2 focus-within:ring-emerald-500/50">
+        <Image className="absolute left-4 text-black/50 dark:text-white/50 group-hover:text-black dark:group-hover:text-white transition-all duration-300" size={20} />
+        
         <input
           type="text"
           value={searchTerm}
           name="desc"
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search free images"
+          placeholder="Search stunning high-res photos..."
           onKeyDown={(e) => {
             if (e.key === "Enter") onSubmit(searchTerm);
           }}
-          className="w-full rounded-lg px-14 py-4 outline-none focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-zinc-300 text-[#111111] transition-all duration-300"
+          className="w-full rounded-2xl pl-12 pr-20 py-4 outline-none bg-transparent text-[#111111] dark:text-white text-base placeholder-black/40 dark:placeholder-white/40"
         />
+
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              onSubmit("");
+            }}
+            className="absolute right-12 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white p-1 transition"
+          >
+            <X size={16} />
+          </button>
+        )}
+
         <button
           type="button"
-          className="absolute right-2 h-12 text-black/60 px-3 py-2 ml-1 rounded-lg hover:bg-black/10 transition-all duration-300 group-hover:text-[#111111]"
+          className="absolute right-2.5 h-10 w-10 flex items-center justify-center text-black/70 dark:text-white/80 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-200"
           onClick={() => onSubmit(searchTerm)}
         >
           {loading ? (
-            <Loader2 className="h-full w-full animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <Search />
+            <Search size={20} />
           )}
         </button>
+      </div>
+
+      {/* Trending Topics Chips */}
+      <div className="flex flex-wrap items-center justify-center gap-2 mt-5 max-w-2xl z-10">
+        <div className="flex items-center gap-1 text-black/60 dark:text-white/60 text-xs font-medium mr-1">
+          <TrendingUp size={13} className="text-emerald-500" />
+          <span>Trending:</span>
+        </div>
+        {TRENDING_TAGS.map((tag) => (
+          <button
+            key={tag}
+            type="button"
+            onClick={() => {
+              setSearchTerm(tag);
+              onSubmit(tag);
+            }}
+            className="px-3 py-1 rounded-full text-xs font-medium bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-black/80 dark:text-white/90 backdrop-blur-sm border border-black/5 dark:border-white/10 transition-all duration-200 hover:scale-105"
+          >
+            {tag}
+          </button>
+        ))}
       </div>
 
       <Link

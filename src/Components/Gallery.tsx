@@ -16,13 +16,19 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageCircle,
+  Sparkles,
+  SearchX,
+  UploadCloud,
+  RotateCcw,
+  Compass,
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../config/Security";
 import { Pagination, Spin } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { CommentPanel } from "./CommentPanel";
+import { GeminiAnalysisPanel } from "./GeminiAnalysisPanel";
 
 interface ImageItem {
   imageId: number;
@@ -82,15 +88,17 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
   const img = images[currentIndex];
   if (!img) return null;
 
-  const [commentOpen, setCommentOpen] = useState<boolean>(false);
+  const [activePanel, setActivePanel] = useState<"none" | "comments" | "ai">(
+    "none"
+  );
 
   const isLiked = likedImages.includes(img.imageId);
   const isSaved = savedImages.includes(img.imageId);
   const isFollowing = followMap[img.uploadedBy];
 
-  // close comment panel when navigating to a different image
+  // close panel when navigating to a different image
   useEffect(() => {
-    setCommentOpen(false);
+    setActivePanel("none");
   }, [currentIndex]);
 
   useEffect(() => {
@@ -165,7 +173,10 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
       {/* Modal card — image + optional comment panel side by side */}
       <div
         className="relative z-40 flex rounded-2xl overflow-hidden shadow-2xl transition-all duration-300"
-        style={{ maxWidth: commentOpen ? "80vw" : "58vw", width: "100%" }}
+        style={{
+          maxWidth: activePanel !== "none" ? "82vw" : "58vw",
+          width: "100%",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: image column */}
@@ -217,21 +228,41 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* AI Insights toggle */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActivePanel((p) => (p === "ai" ? "none" : "ai"));
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm transition-all duration-200 ${
+                  activePanel === "ai"
+                    ? "bg-gradient-to-r from-emerald-500/25 to-teal-500/25 border-emerald-400 text-emerald-300 font-medium shadow-sm shadow-emerald-500/20"
+                    : "border-white/30 text-white hover:bg-white/10"
+                }`}
+                title="AI Photo Analysis & Camera Insights"
+              >
+                <Sparkles
+                  size={15}
+                  className="text-emerald-400"
+                />
+                <span className="max-sm:hidden">AI Insights</span>
+              </button>
+
               {/* Comment toggle */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setCommentOpen((p) => !p);
+                  setActivePanel((p) => (p === "comments" ? "none" : "comments"));
                 }}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-full border text-sm transition-all duration-200 ${
-                  commentOpen
+                  activePanel === "comments"
                     ? "bg-white/20 border-white/40 text-white"
                     : "border-white/30 text-white hover:bg-white/10"
                 }`}
               >
                 <MessageCircle
                   size={15}
-                  className={commentOpen ? "fill-white/30" : ""}
+                  className={activePanel === "comments" ? "fill-white/30" : ""}
                 />
                 <span>{img.totalComments}</span>
               </button>
@@ -279,15 +310,15 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
           </div>
         </div>
 
-        {/* Right: comment panel — slides in */}
-        {commentOpen && (
+        {/* Right: comment panel */}
+        {activePanel === "comments" && (
           <div
             className="bg-black/70 backdrop-blur-md border-l border-white/10 flex-shrink-0 flex flex-col"
-            style={{ width: 320, maxHeight: "calc(68vh + 60px)" }}
+            style={{ width: 340, maxHeight: "calc(68vh + 60px)" }}
           >
             <CommentPanel
               imageId={img.imageId}
-              onClose={() => setCommentOpen(false)}
+              onClose={() => setActivePanel("none")}
               onComment={(result: boolean) => {
                 setImages((prev) => {
                   return prev.map((image) =>
@@ -297,6 +328,20 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
                   );
                 });
               }}
+            />
+          </div>
+        )}
+
+        {/* Right: Gemini AI Analysis Panel */}
+        {activePanel === "ai" && (
+          <div
+            className="flex-shrink-0 flex flex-col"
+            style={{ width: 360, maxHeight: "calc(68vh + 60px)" }}
+          >
+            <GeminiAnalysisPanel
+              imageUrl={img.cloudinary_publicId}
+              imageTitle={img.uploadedByUserName}
+              onClose={() => setActivePanel("none")}
             />
           </div>
         )}
@@ -411,7 +456,19 @@ const Gallery: React.FC<GalleryProps> = ({
       undefined,
       { withCredentials: true, validateStatus: (s) => s > 0 }
     );
-    if (response.status === 401) toast.warn("Sign-in to continue");
+    if (response.status === 401) {
+      setLikedImages((prev) => prev.filter((id) => id !== imgId));
+      setImages((prev) =>
+        prev.map((img) =>
+          img.imageId === imgId
+            ? {
+                ...img,
+                totalLikes: Math.max(0, img.totalLikes - 1),
+              }
+            : img
+        )
+      );
+    }
   };
 
   const toggleSave = async (
@@ -427,13 +484,16 @@ const Gallery: React.FC<GalleryProps> = ({
     if (savedImages.includes(imgId) && activeTab === "Saved") {
       setImages((prev) => prev.filter((img) => img.imageId !== imgId));
     }
-    await api.post(
+    const response = await api.post(
       `${
         import.meta.env.VITE_BACKEND_URL
       }/images/${imgId}/engagements?type=SAVE`,
       {},
       { withCredentials: true, validateStatus: (s) => s > 0 }
     );
+    if (response.status === 401) {
+      setSavedImages((prev) => prev.filter((id) => id !== imgId));
+    }
   };
 
   const toggleFollow = async (
@@ -447,7 +507,9 @@ const Gallery: React.FC<GalleryProps> = ({
       {},
       { withCredentials: true, validateStatus: (s) => s > 0 }
     );
-    if (response.status === 401) toast.warn("Sign-in to continue");
+    if (response.status === 401) {
+      setFollowMap((prev) => ({ ...prev, [userId]: false }));
+    }
   };
 
   const downloadImage = async (
@@ -516,11 +578,24 @@ const Gallery: React.FC<GalleryProps> = ({
       )}
 
       {loading.show && loading.type === "images" ? (
-        <div
-          className="flex items-center justify-center"
-          style={{ height: "calc(100vh - 200px)" }}
-        >
-          <Spin size="large" />
+        <div className="max-w-[1460px] w-full pt-4">
+          <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6 w-full">
+            {[320, 440, 280, 390, 300, 460].map((h, idx) => (
+              <div
+                key={idx}
+                style={{ height: h }}
+                className="w-full rounded-2xl bg-gradient-to-br from-black/5 to-black/10 dark:from-white/5 dark:to-white/10 animate-pulse break-inside-avoid relative overflow-hidden border border-black/5 dark:border-white/5"
+              >
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-black/10 dark:bg-white/10" />
+                    <div className="h-3 w-20 rounded bg-black/10 dark:bg-white/10" />
+                  </div>
+                  <div className="h-7 w-7 rounded-full bg-black/10 dark:bg-white/10" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-start justify-center max-w-[1460px] w-full">
@@ -548,19 +623,10 @@ const Gallery: React.FC<GalleryProps> = ({
           )}
 
           {/* Search heading */}
-          {search && (
-            <h2 className="text-2xl text-[#111111] dark:text-white mb-12">
-              {images.length > 0 ? (
-                <>
-                  Free <span className="text-primary capitalize">{search}</span>{" "}
-                  Images
-                </>
-              ) : (
-                <>
-                  No <span className="text-red-500 capitalize">{search}</span>{" "}
-                  Images
-                </>
-              )}
+          {search && images.length > 0 && (
+            <h2 className="text-2xl text-[#111111] dark:text-white mb-8">
+              Free <span className="text-primary capitalize">{search}</span>{" "}
+              Images
             </h2>
           )}
 
@@ -694,10 +760,121 @@ const Gallery: React.FC<GalleryProps> = ({
               />
             </div>
           ) : (
-            !loading.show &&
-            location.pathname === "/" && (
-              <div className="text-2xl text-gray-400 rounded-lg shadow-lg shadow-black/60 px-4 py-3">
-                No image found
+            !loading.show && (
+              <div className="w-full flex flex-col items-center justify-center py-16 px-4 text-center">
+                {search ? (
+                  <div className="max-w-md flex flex-col items-center space-y-4">
+                    <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-xl shadow-emerald-500/5">
+                      <SearchX size={36} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-[#111111] dark:text-white">
+                        No matches found for &ldquo;{search}&rdquo;
+                      </h3>
+                      <p className="text-sm text-black/50 dark:text-white/50 mt-1.5 leading-relaxed">
+                        We couldn&apos;t find any photos matching your search. Try searching for broader terms or explore trending themes below.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                      {["Nature", "Cyberpunk", "Portraits", "Street", "Architecture"].map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => {
+                            onTabChange(false);
+                            window.location.search = `?q=${encodeURIComponent(cat)}`;
+                          }}
+                          className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-black/80 dark:text-white/80 transition"
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        onClick={() => onTabChange(true)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-xs font-medium text-black dark:text-white transition"
+                      >
+                        <RotateCcw size={13} />
+                        Clear Search
+                      </button>
+                      <Link
+                        to="/user/upload"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-semibold transition"
+                      >
+                        <UploadCloud size={14} />
+                        Upload Photo
+                      </Link>
+                    </div>
+                  </div>
+                ) : activeTab === "Saved" ? (
+                  <div className="max-w-md flex flex-col items-center space-y-4">
+                    <div className="w-20 h-20 rounded-3xl bg-zinc-500/10 border border-zinc-500/20 flex items-center justify-center text-zinc-400 shadow-xl shadow-zinc-500/5">
+                      <Bookmark size={36} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-[#111111] dark:text-white">
+                        No saved photos yet
+                      </h3>
+                      <p className="text-sm text-black/50 dark:text-white/50 mt-1.5 leading-relaxed">
+                        Click the bookmark icon on any photo while exploring to save your favorites to your personal collection.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActiveTab("All");
+                        setPage(0);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-xs font-medium transition"
+                    >
+                      <Compass size={14} />
+                      Explore All Photos
+                    </button>
+                  </div>
+                ) : activeTab === "Uploads" ? (
+                  <div className="max-w-md flex flex-col items-center space-y-4">
+                    <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-xl shadow-emerald-500/5">
+                      <UploadCloud size={36} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-[#111111] dark:text-white">
+                        No uploads yet
+                      </h3>
+                      <p className="text-sm text-black/50 dark:text-white/50 mt-1.5 leading-relaxed">
+                        Share your photography with community creators and get feedback from photographers worldwide.
+                      </p>
+                    </div>
+                    <Link
+                      to="/user/upload"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-semibold transition"
+                    >
+                      <UploadCloud size={14} />
+                      Upload Your First Photo
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="max-w-md flex flex-col items-center space-y-4">
+                    <div className="w-20 h-20 rounded-3xl bg-black/5 dark:bg-white/10 flex items-center justify-center text-black/50 dark:text-white/50">
+                      <Compass size={36} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-[#111111] dark:text-white">
+                        No photos available
+                      </h3>
+                      <p className="text-sm text-black/50 dark:text-white/50 mt-1.5 leading-relaxed">
+                        Check back soon or be the first to share high-resolution imagery.
+                      </p>
+                    </div>
+                    <Link
+                      to="/user/upload"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-semibold transition"
+                    >
+                      <UploadCloud size={14} />
+                      Upload Photo
+                    </Link>
+                  </div>
+                )}
               </div>
             )
           )}

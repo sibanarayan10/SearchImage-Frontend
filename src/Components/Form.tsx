@@ -8,6 +8,7 @@ import React, {
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { Link, useNavigate } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
+import { toast } from "react-toastify";
 import api from "../config/Security";
 
 /* ─── Types ─────────────────────────────────────────────────────── */
@@ -130,7 +131,17 @@ function Form({ mode }: FormProps) {
       );
 
       if (response.status >= 200 && response.status <= 300) {
-        navigate(mode === "signup" ? "/sign-in" : "/");
+        if (mode === "signin") {
+          localStorage.setItem(
+            "user",
+            JSON.stringify(response.data || { authenticated: true })
+          );
+          toast.success("Signed in successfully!");
+          navigate("/");
+        } else {
+          toast.success("Account created successfully! Please sign in.");
+          navigate("/sign-in");
+        }
       } else {
         const msg: string = response.data?.message ?? "";
         const [type, text] = msg.split(",");
